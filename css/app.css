@@ -562,3 +562,14 @@
   .bmsteps kbd{font:600 10.5px Inter;background:#ece7df;border-radius:4px;padding:1px 5px}
   .bmok{width:100%;padding:12px!important;font-size:14px!important}
   @media (hover:none){.bmopen{display:none}}
+
+  /* ---------- découper soi-même ---------- */
+  .cutbtn{margin-top:8px;width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px;font:500 12.5px Inter;cursor:pointer;color:var(--ink)}
+  .cutbtn:hover{border-color:var(--ink)}
+  #cutter{position:fixed;inset:0;z-index:90;display:none;place-items:center;background:rgba(30,25,20,.55);backdrop-filter:blur(4px)}
+  #cutter.on{display:grid}
+  .cutcard{background:#fffdf8;border-radius:18px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:12px;max-width:calc(100vw - 40px)}
+  .cuthead{display:flex;flex-direction:column;gap:2px}.cuthead b{font:600 16px Inter}.cuthead span{font-size:12.5px;color:var(--muted)}
+  #cutcv{display:block;border-radius:10px;cursor:crosshair;touch-action:none;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;max-width:100%}
+  .cutact{display:flex;gap:8px;align-items:center}.cutact .btn{flex:none}.cutact .sp{flex:1}
+  #cutok:disabled{opacity:.4;cursor:not-allowed}

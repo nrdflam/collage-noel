@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/app.css?v=202611152236">
+<style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
@@ -84,6 +85,7 @@
     <div>
       <div class="dz" id="dz"><div id="dzt">Glisse une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div></div>
       <input type="file" id="file" accept="image/*" hidden>
+      <button type="button" class="cutbtn" id="cutbtn" style="display:none">✂ Découper moi-même</button>
     </div>
     <div class="fields">
       <div class="urlbox"><label><span class="lab">Remplir depuis un lien <span class="info" tabindex="0">i<span class="tip">Colle l’adresse de la page du produit (Amazon, Fnac, une petite boutique…) : le nom, la marque, le prix et l’image se remplissent tout seuls. Tu peux tout corriger ensuite. Certains sites bloquent la lecture : dans ce cas, remplis à la main.</span></span></span><span class="urlrow"><input id="f_url" placeholder="https://… la page du produit" inputmode="url"><button type="button" class="btn dark" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label><button type="button" class="bmopen">✨ Ajouter depuis n’importe quel site</button></div>
@@ -99,7 +101,7 @@
       <button type="button" class="btn" id="fcancel" style="flex:none">Annuler</button><button type="submit" class="btn dark" id="fsave" style="flex:none">Ajouter</button></div>
   </form>
 </div>
-<div id="welcome"><div class="wcard">
+<div id="welcome" hidden-until-css><div class="wcard">
   <div class="wlogo">Collage <i>de</i> Noël</div>
   <p class="wmsg" id="wmsg"></p>
   <div class="wlogin"><p>Fais la liste de Noël de ta famille en collage, partage-la et laisse tes proches réserver les cadeaux.</p>
@@ -108,13 +110,13 @@
   <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="Famille Dupont" required><button class="btn dark">Créer ma liste</button></form></div>
   <button type="button" class="wclose" id="wclose">Fermer</button>
 </div></div>
-<div id="confirm"><div class="ccard">
+<div id="confirm" hidden-until-css><div class="ccard">
   <h3 id="ctitle"></h3><p id="ctext"></p>
   <div id="cwarn"></div>
   <label id="ctype">Pour confirmer, tape le nom de la famille :<input id="cinput" autocomplete="off" spellcheck="false"></label>
   <div class="cact"><button type="button" class="btn" id="cno">Annuler</button><button type="button" class="btn danger-fill" id="cyes">Supprimer</button></div>
 </div></div>
-<div id="home">
+<div id="home" hidden-until-css>
   <div class="hside hl"></div><div class="hside hr"></div>
   <div class="hsheet"><div class="paper p-uni"></div><div class="ruling r-uni"></div><div class="hstk"></div>
     <div class="hcontent">
@@ -129,7 +131,7 @@
       <div class="hfavs" id="hfavs"></div>
     </div></div>
 </div>
-<div id="bminstall"><div class="bmcard">
+<div id="bminstall" hidden-until-css><div class="bmcard">
   <button type="button" class="bmx" title="Fermer">×</button>
   <h3>Ajoute tes envies depuis n’importe quel site</h3>
   <p class="bmsub">Un bouton dans ta barre de favoris. Sur une page produit, un clic et c’est dans ta liste, avec l’image et le prix.</p>
@@ -143,10 +145,15 @@
   <ol class="bmsteps"><li><b>Glisse</b> le bouton rouge dans ta barre de favoris.<small>Tu ne la vois pas ? <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> (ou <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>B</kbd>)</small></li><li><b>Sur une page produit</b>, clique sur « 🎁 Ma liste de Noël ».</li><li><b>C’est rempli</b> : nom, prix, image, lien. Tu valides, c’est collé.</li></ol>
   <button type="button" class="btn dark bmok">C’est fait</button>
 </div></div>
+<div id="cutter" hidden-until-css><div class="cutcard">
+  <div class="cuthead"><b>Découpe l’objet</b><span id="cuthint"></span></div>
+  <canvas id="cutcv"></canvas>
+  <div class="cutact"><button type="button" class="btn" id="cutauto">Revenir à l’automatique</button><span class="sp"></span><button type="button" class="btn" id="cutcancel">Annuler</button><button type="button" class="btn dark" id="cutok">Utiliser ce contour</button></div>
+</div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js"></script>
+<script src="config.js?v=202611152236"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=202611152236"></script>
 </body>
 </html>

@@ -326,17 +326,19 @@ function loadImg(src){if(!imgCache.has(src))imgCache.set(src,new Promise((res,re
 function itemPoly(it,im){
   if(it.src.startsWith('builtin:ph'))return phPoly(it.src.slice(8));
   if(it.src.startsWith('builtin:')&&BUILTIN_POLY[it.src.slice(8)])return BUILTIN_POLY[it.src.slice(8)];
+  if(it.polyN)return it.polyN.map(([x,y])=>[x*im.naturalWidth,y*im.naturalHeight]);
   if(it.poly)return it.poly;const W=im.naturalWidth,H=im.naturalHeight,S=Math.min(W,H),m=S*.05,R=rng((it.seed||7)+3),c=()=>S*(.07+R()*.15),j=()=>(R()-.5)*S*.05;
   return[[m+c(),m+j()],[W/2+j(),m+j()*.5],[W-m-c(),m+j()],[W-m+j(),m+c()],[W-m+j()*.5,H/2+j()],[W-m+j(),H-m-c()],[W-m-c(),H-m+j()],[W/2+j(),H-m+j()*.5],[m+c(),H-m+j()],[m+j(),H-m-c()],[m+j()*.5,H/2+j()],[m+j(),m+c()]]}
 let DEBUG=false;
 async function drawPiece(id,el,force){
   const it=S.items.get(id);if(!it)return;
   const OUT=!it.ph&&!it.src.startsWith('builtin:ph')&&!!S.sheets.get(it.sheet)?.outline;
-  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG,OUT,(OUT||it.src.startsWith('builtin:ph'))?Math.round(it.w*4):0].join('|');if(!force&&el._key===key)return;el._key=key;
+  const PK=it.polyN?it.polyN.length+':'+it.polyN.slice(0,3).join(','):'';
+  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG,OUT,PK,(OUT||it.src.startsWith('builtin:ph'))?Math.round(it.w*4):0].join('|');if(!force&&el._key===key)return;el._key=key;
   let im;try{im=await loadImg(it.src)}catch(e){return}
   const W=im.naturalWidth,H=im.naturalHeight,P=itemPoly(it,im);
   if(it.src.startsWith('builtin:ph')){const r=stickerInto(el.querySelector('canvas'),im,P,false,it.w);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
-  const M=getMask(it.src,im,P,!!it.alpha,S.cfg.margin);
+  const M=getMask(it.src+(PK?'|'+PK:''),im,P,!!it.alpha&&!it.polyN,S.cfg.margin);
   const V=cutPath(P,M,W,H,it.seed||1);
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;V.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
   const LM=OUT?lisPx(W,it.w):0,pad=Math.ceil(S.cfg.shadow*2.5+4+LM);x0=Math.floor(x0);y0=Math.floor(y0);x1=Math.ceil(x1);y1=Math.ceil(y1);
@@ -606,7 +608,7 @@ const modal=document.getElementById('modal'),form=document.getElementById('form'
 let F=null; // {id, sheet, x, y, file, preview}
 function linkRow(l={}){const r=document.createElement('div');r.className='l';r.innerHTML='<input placeholder="Magasin"><input placeholder="https://…"><button type="button" class="x" title="Retirer">×</button>';
   r.children[0].value=l.label||'';r.children[1].value=l.url||'';r.children[2].onclick=()=>r.remove();document.getElementById('f_links').appendChild(r)}
-function setPreview(file){F.file=file;const u=URL.createObjectURL(file);dz.innerHTML='';const i=new Image();i.src=u;dz.appendChild(i)}
+function setPreview(file){F.file=file;F.polyN=undefined;syncCutBtn();const u=URL.createObjectURL(file);dz.innerHTML='';const i=new Image();i.src=u;dz.appendChild(i)}
 function openForm(id,opt={}){
   if(!EDIT)return;
   const it=id?S.items.get(id):null;F={id,sheet:it?it.sheet:(opt.sheet||activeSheet),x:opt.x,y:opt.y,file:null};
@@ -620,6 +622,7 @@ function openForm(id,opt={}){
   dz.innerHTML='<div>Glisse ou colle une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div>';
   if(it)loadImg(it.src).then(im=>{if(F&&F.id===id&&!F.file){dz.innerHTML='';const i=new Image();i.src=im.src;dz.appendChild(i)}}).catch(()=>{});
   document.getElementById('f_url').value=it?.links?.[0]?.url||'';const us=document.getElementById('f_urlst');us.className='';us.textContent=it?'':'Colle un lien : je remplis le nom, le prix et l’image.';
+  F.polyN=it?.polyN;syncCutBtn();
   if(opt.file)setPreview(opt.file);
   modal.classList.add('on');setTimeout(()=>document.getElementById(it||opt.url?'f_name':'f_url').focus(),50);
   if(opt.url)fillFromUrl(opt.url,!opt.file);
@@ -684,7 +687,7 @@ async function prepImage(file){
 form.addEventListener('submit',async e=>{
   e.preventDefault();if(!F)return;const err=document.getElementById('ferr');err.textContent='';
   const name=document.getElementById('f_name').value.trim();if(!name){err.textContent='Il faut un nom.';return}
-  const data={name,price:document.getElementById('f_price').value.trim(),brand:document.getElementById('f_brand').value.trim(),color:F.color||null,note:document.getElementById('f_note').value.trim(),
+  const data={...(F.polyN!==undefined?{polyN:F.polyN||null}:{}),name,price:document.getElementById('f_price').value.trim(),brand:document.getElementById('f_brand').value.trim(),color:F.color||null,note:document.getElementById('f_note').value.trim(),
     q:document.getElementById('f_q').value.trim(),links:[...document.querySelectorAll('#f_links .l')].map(r=>({label:r.children[0].value.trim(),url:r.children[1].value.trim()})).filter(l=>l.url)};
   data.links.forEach(l=>{if(l.url&&!/^https?:\/\//i.test(l.url))l.url='https://'+l.url});
   if(!F.id&&!F.file){err.textContent='Ajoute une image.';return}
@@ -1156,5 +1159,34 @@ function consumeAdd(){if(!PENDING_ADD||consumeAdd.done)return;if(!CAN_WRITE){toa
   let sid=null;try{const l=localStorage.getItem('collage-last-sheet');if(l&&S.sheets.has(l)&&S.sheets.get(l).board===activeBoard)sid=l}catch(e){}
   if(sid&&sid!==activeSheet)setActive(sid);
   openForm(null,{sheet:sid||activeSheet,prefill:PENDING_ADD})}
+
+/* =====================================================================
+   Découper soi-même : on fait le tour de l'objet à la souris (ou au doigt)
+   ===================================================================== */
+const CUT=document.getElementById('cutter'),CV=document.getElementById('cutcv'),CG=CV.getContext('2d');let CUTS=null;
+function syncCutBtn(){const b=document.getElementById('cutbtn');if(!b)return;const has=!!(F&&(F.file||F.id));b.style.display=has?'':'none';b.textContent=F&&F.polyN?'✂ Contour personnalisé · modifier':'✂ Découper moi-même'}
+async function cutterImage(){if(F.file)return await createImageBitmap(F.file);const it=S.items.get(F.id);return await loadImg(it.src)}
+document.getElementById('cutbtn').onclick=async()=>{if(!F)return;let im;try{im=await cutterImage()}catch(e){toast('Image indisponible');return}
+  const iw=im.width||im.naturalWidth,ih=im.height||im.naturalHeight,maxW=Math.min(innerWidth-80,760),maxH=innerHeight-230,k=Math.min(maxW/iw,maxH/ih);
+  CV.width=Math.round(iw*k);CV.height=Math.round(ih*k);CUTS={im,pts:(F.polyN||[]).map(([x,y])=>[x*CV.width,y*CV.height]),drawing:false,closed:!!(F.polyN&&F.polyN.length)};
+  CUT.classList.add('on');drawCut()};
+function drawCut(){const {im,pts,closed}=CUTS,W=CV.width,H=CV.height;CG.clearRect(0,0,W,H);CG.drawImage(im,0,0,W,H);
+  if(pts.length>2&&closed){CG.save();CG.fillStyle='rgba(30,25,20,.55)';CG.beginPath();CG.rect(0,0,W,H);pts.forEach((p,i)=>i?CG.lineTo(p[0],p[1]):CG.moveTo(p[0],p[1]));CG.closePath();CG.fill('evenodd');CG.restore()}
+  if(pts.length>1){CG.save();CG.lineWidth=2.5;CG.strokeStyle='#e5533d';CG.setLineDash(closed?[]:[6,5]);CG.lineJoin='round';CG.beginPath();pts.forEach((p,i)=>i?CG.lineTo(p[0],p[1]):CG.moveTo(p[0],p[1]));if(closed)CG.closePath();CG.stroke();CG.restore()}
+  document.getElementById('cutok').disabled=!(closed&&pts.length>2);document.getElementById('cuthint').textContent=closed?'Parfait. Recommence en traçant à nouveau, ou valide.':'Maintiens le clic et fais le tour de l’objet, en largeur. Relâche pour fermer.'}
+const cpos=e=>{const r=CV.getBoundingClientRect();return[(e.clientX-r.left)*CV.width/r.width,(e.clientY-r.top)*CV.height/r.height]};
+CV.addEventListener('pointerdown',e=>{e.preventDefault();CV.setPointerCapture(e.pointerId);CUTS.pts=[cpos(e)];CUTS.closed=false;CUTS.drawing=true;drawCut()});
+CV.addEventListener('pointermove',e=>{if(!CUTS?.drawing)return;const p=cpos(e),l=CUTS.pts[CUTS.pts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>3){CUTS.pts.push(p);drawCut()}});
+CV.addEventListener('pointerup',()=>{if(!CUTS?.drawing)return;CUTS.drawing=false;if(CUTS.pts.length>8){CUTS.pts=simplifyLoop(CUTS.pts,2.2);CUTS.closed=CUTS.pts.length>2}else CUTS.pts=[];drawCut()});
+function simplify(pts,eps){if(pts.length<3)return pts;const d=(p,a,b)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return Math.abs((b[0]-a[0])*(a[1]-p[1])-(a[0]-p[0])*(b[1]-a[1]))/L};
+  let mx=0,ix=0;for(let i=1;i<pts.length-1;i++){const v=d(pts[i],pts[0],pts[pts.length-1]);if(v>mx){mx=v;ix=i}}
+  return mx>eps?[...simplify(pts.slice(0,ix+1),eps).slice(0,-1),...simplify(pts.slice(ix),eps)]:[pts[0],pts[pts.length-1]]}
+function simplifyLoop(pts,eps){let k=0,far=0;pts.forEach((p,i)=>{const d=Math.hypot(p[0]-pts[0][0],p[1]-pts[0][1]);if(d>far){far=d;k=i}});
+  const A=simplify(pts.slice(0,k+1),eps),B=simplify([...pts.slice(k),pts[0]],eps);return [...A.slice(0,-1),...B.slice(0,-1)]}
+function closeCut(){CUT.classList.remove('on');CUTS=null}
+document.getElementById('cutcancel').onclick=closeCut;
+document.getElementById('cutauto').onclick=()=>{if(F)F.polyN=null;syncCutBtn();closeCut();toast('Découpe automatique')};
+document.getElementById('cutok').onclick=()=>{if(!F||!CUTS)return;F.polyN=CUTS.pts.map(([x,y])=>[+(x/CV.width).toFixed(4),+(y/CV.height).toFixed(4)]);syncCutBtn();closeCut();toast('Contour enregistré : il sera appliqué en validant la fiche')};
+CUT.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeCut()});
 
 boot();
