@@ -326,7 +326,8 @@ function loadImg(src){if(!imgCache.has(src))imgCache.set(src,new Promise((res,re
 function itemPoly(it,im){
   if(it.src.startsWith('builtin:ph'))return phPoly(it.src.slice(8));
   if(it.src.startsWith('builtin:')&&BUILTIN_POLY[it.src.slice(8)])return BUILTIN_POLY[it.src.slice(8)];
-  if(it.poly)return it.poly;const W=im.naturalWidth,H=im.naturalHeight,m=Math.min(W,H)*.07;return[[m,m],[W-m,m],[W-m,H-m],[m,H-m]]}
+  if(it.poly)return it.poly;const W=im.naturalWidth,H=im.naturalHeight,S=Math.min(W,H),m=S*.05,R=rng((it.seed||7)+3),c=()=>S*(.07+R()*.15),j=()=>(R()-.5)*S*.05;
+  return[[m+c(),m+j()],[W/2+j(),m+j()*.5],[W-m-c(),m+j()],[W-m+j(),m+c()],[W-m+j()*.5,H/2+j()],[W-m+j(),H-m-c()],[W-m-c(),H-m+j()],[W/2+j(),H-m+j()*.5],[m+c(),H-m+j()],[m+j(),H-m-c()],[m+j()*.5,H/2+j()],[m+j(),m+c()]]}
 let DEBUG=false;
 async function drawPiece(id,el,force){
   const it=S.items.get(id);if(!it)return;
@@ -648,9 +649,31 @@ document.getElementById('fdel').onclick=()=>{if(F?.id){const sid=S.items.get(F.i
 // éviter que les touches du formulaire déclenchent les raccourcis
 form.addEventListener('keydown',e=>{if(e.key==='Escape')closeForm();e.stopPropagation()});
 
+function hasAlpha(g,W,H){const d=g.getImageData(0,0,W,H).data;for(let i=3;i<d.length;i+=4*97)if(d[i]<200)return true;return false}
+/* Fond uni (photo de boutique sur blanc/gris) : on le repère depuis les bords et on le rend transparent,
+   pour que la découpe suive l'objet. Si le fond est une vraie scène, on ne touche à rien. */
+function removeFlatBackground(c,W,H){
+  const k=Math.min(1,260/Math.max(W,H)),w=Math.max(8,Math.round(W*k)),h=Math.max(8,Math.round(H*k));
+  const a=document.createElement('canvas');a.width=w;a.height=h;const ag=a.getContext('2d',{willReadFrequently:true});ag.drawImage(c,0,0,w,h);const d=ag.getImageData(0,0,w,h).data;
+  const border=[];for(let x=0;x<w;x++){border.push(x,(h-1)*w+x)}for(let y=1;y<h-1;y++){border.push(y*w,y*w+w-1)}
+  const med=ch=>{const v=border.map(p=>d[p*4+ch]).sort((x,y)=>x-y);return v[v.length>>1]};const br=med(0),bg=med(1),bb=med(2);
+  const dist=p=>Math.hypot(d[p*4]-br,d[p*4+1]-bg,d[p*4+2]-bb);
+  if(border.filter(p=>dist(p)<26).length/border.length<.6)return false; // bords pas uniformes : vraie photo
+  const bgm=new Uint8Array(w*h),st=[];border.forEach(p=>{if(dist(p)<34&&!bgm[p]){bgm[p]=1;st.push(p)}});
+  while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;
+    for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,y>0?p-w:-1,y<h-1?p+w:-1]){if(q<0||bgm[q])continue;
+      if(dist(q)<34||(Math.hypot(d[q*4]-d[p*4],d[q*4+1]-d[p*4+1],d[q*4+2]-d[p*4+2])<7&&dist(q)<60)){bgm[q]=1;st.push(q)}}}
+  let n=0;for(let i=0;i<bgm.length;i++)n+=bgm[i];const fg=1-n/bgm.length;
+  if(fg<.05||fg>.9)return false;
+  // masque (objet opaque, légèrement épaissi) appliqué à l'image en pleine taille
+  const m=ag.createImageData(w,h);for(let i=0;i<bgm.length;i++){let on=!bgm[i];if(!on){const x=i%w,y=(i/w)|0;on=(x>0&&!bgm[i-1])||(x<w-1&&!bgm[i+1])||(y>0&&!bgm[i-w])||(y<h-1&&!bgm[i+w])}m.data[i*4+3]=on?255:0}
+  const mc=document.createElement('canvas');mc.width=w;mc.height=h;mc.getContext('2d').putImageData(m,0,0);
+  const g=c.getContext('2d');g.save();g.globalCompositeOperation='destination-in';g.imageSmoothingEnabled=true;g.filter='blur('+Math.max(1,1/k*.6)+'px)';g.drawImage(mc,0,0,W,H);g.restore();
+  return true}
 async function prepImage(file){
   const bmp=await createImageBitmap(file);const max=1100,s=Math.min(1,max/Math.max(bmp.width,bmp.height));
   const W=Math.round(bmp.width*s),H=Math.round(bmp.height*s),c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(bmp,0,0,W,H);
+  if(!hasAlpha(g,W,H))removeFlatBackground(c,W,H);
   const d=g.getImageData(0,0,W,H).data;let transp=0,pts=[];const step=Math.max(2,Math.round(Math.max(W,H)/220));
   for(let y=0;y<H;y+=step)for(let x=0;x<W;x+=step){const a=d[(y*W+x)*4+3];if(a<20)transp++;else pts.push([x,y])}
   const total=Math.ceil(H/step)*Math.ceil(W/step);const alpha=transp/total>.04&&pts.length>10;
