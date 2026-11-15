@@ -18,7 +18,7 @@
 </svg>
 
 <header id="brand"><div class="fam" spellcheck="false"></div><div class="bsub"><span class="fsub" spellcheck="false"></span><button id="favstar" type="button">☆ Ajouter aux favoris</button><span class="wrap-rel" id="famwrap"><button id="boardsbtn">Famille ▾</button><div class="menu" id="boardsmenu"></div></span></div></header>
-<div id="topright"><div class="wrap-rel" id="favwrap"><button id="favbtn">★ Mes favoris</button><div class="menu" id="favmenu"></div></div><div id="modes"><button data-m="edit">Éditer</button><button data-m="view">Aperçu</button></div><div class="wrap-rel" id="account"><button id="acctbtn">Se connecter</button><div class="menu" id="acctmenu"></div></div></div>
+<div id="topright"><button id="mklist" type="button">✨ Créer ma liste</button><div class="wrap-rel" id="favwrap"><button id="favbtn">★ Mes favoris</button><div class="menu" id="favmenu"></div></div><div id="modes"><button data-m="edit">Éditer</button><button data-m="view">Aperçu</button></div><div class="wrap-rel" id="account"><button id="acctbtn">Se connecter</button><div class="menu" id="acctmenu"></div></div></div>
 <div id="stackhint">Clique sur une liste pour l’ouvrir</div>
 <div id="stage"></div>
 <nav id="pager"></nav>
@@ -39,6 +39,9 @@
   <button id="selall" class="edit-only" data-tip="Tout sélectionner · ⌘A">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h2M11 3h2M17 3a2 2 0 0 1 2 2M3 7v2M3 13v2M3 5a2 2 0 0 1 2-2M5 19a2 2 0 0 1-2-2M9 19h2M19 9v2"/><path d="M13 13l8 3-3.5 1.5L16 21z" fill="currentColor"/></svg>
     <span>Tout</span><span class="badge" id="count">0</span>
+  </button>
+  <button id="delsel" class="edit-only" data-tip="Supprimer la sélection · touche Suppr">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Supprimer</span>
   </button>
   <button id="shuffle" class="edit-only" data-tip="Mélanger la feuille">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>

@@ -523,7 +523,7 @@ function refreshAct(id){const a=isAct(id);pieces.get(id)?.classList.toggle('act'
    Sélection et manipulation
    ===================================================================== */
 const sel=new Set(),dragging=new Set();let zTop=1;
-function badge(){const b=document.getElementById('count');b.textContent=sel.size;b.classList.toggle('show',sel.size>0)}
+function badge(){const b=document.getElementById('count');b.textContent=sel.size;b.classList.toggle('show',sel.size>0);document.getElementById('delsel').classList.toggle('show',sel.size>0)}
 function syncSel(){pieces.forEach((el,k)=>{el.classList.toggle('sel',sel.has(k));refreshAct(k)});badge()}
 function setSel(keys){sel.clear();keys.forEach(k=>sel.add(k));syncSel();if(sel.size===1)setOpen([...sel][0])}
 const sheetItems=sid=>[...S.items].filter(([,v])=>v.sheet===sid).map(([k])=>k);
@@ -587,7 +587,7 @@ addEventListener('keydown',e=>{
   if(ar&&!sel.size&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();goSheet(e.key==='ArrowLeft'?-1:1)}
   if(ar&&sel.size&&EDIT){e.preventDefault();const s=e.shiftKey?2:.3;sel.forEach(k=>{const it=S.items.get(k);it.x+=ar[0]*s;it.y+=ar[1]*s*210/297;placePiece(pieces.get(k),it)});
     clearTimeout(window._at);window._at=setTimeout(()=>sel.forEach(k=>store.setItem(k,pick(S.items.get(k)),true)),400)}
-  if((e.key==='Backspace'||e.key==='Delete')&&sel.size===1&&EDIT){openForm([...sel][0])}
+  if((e.key==='Backspace'||e.key==='Delete')&&sel.size&&EDIT){e.preventDefault();deleteSelection()}
 });
 
 /* =====================================================================
@@ -1074,6 +1074,7 @@ function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeB
   if(fav){const b=S.boards.get(activeBoard),f=a.find(x=>x.id===activeBoard);if(b&&b.name&&f.name!==b.name){f.name=b.name;try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}}}
   const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
   document.getElementById('favwrap').style.display=(UI==='view'&&!CAN_WRITE)?'':'none';
+  document.getElementById('mklist').style.display=(UI==='view'&&!CAN_WRITE)?'inline-block':'none';
   const h=document.getElementById('hfavs');h.innerHTML='';if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
     const w=document.createElement('div');w.className='hfw';a.forEach(f=>{const x=document.createElement('a');x.href=favUrl(f.id);x.textContent=f.name;x.onclick=()=>hideHome();w.appendChild(x)});h.appendChild(w)}}
 document.getElementById('favstar').onclick=()=>{if(activeBoard)toggleFav(activeBoard)};
@@ -1084,5 +1085,15 @@ document.getElementById('favbtn').onclick=e=>{e.stopPropagation();const o=FVM.cl
     r.querySelector('.rm').onclick=ev=>{ev.stopPropagation();saveFavs(favs().filter(x=>x.id!==f.id));r.remove();if(!favs().length)closeMenus()};FVM.appendChild(r)});
   const n=document.createElement('div');n.className='mnote';n.textContent='Gardés dans ce navigateur.';FVM.appendChild(n);FVM.classList.add('open')};
 renderFavs();
+
+document.getElementById('mklist').onclick=()=>{closeMenus();if(USER){showWelcome()}else{history.replaceState(null,'',location.pathname);showHome();setHomeTab('new');setTimeout(()=>document.getElementById('hname').focus(),80)}};
+
+/* ---------- supprimer la sélection (avec « Annuler ») ---------- */
+function deleteSelection(){const keys=[...sel].filter(k=>S.items.has(k));if(!keys.length)return;
+  const saved=keys.map(k=>[k,{...S.items.get(k)}]);keys.forEach(k=>{store.delItem(k,true);sel.delete(k)});renderAll();syncSel();
+  const t=document.getElementById('toast');t.innerHTML='';const sp=document.createElement('span');sp.textContent=keys.length>1?keys.length+' objets supprimés':'Objet supprimé';
+  const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{saved.forEach(([k,v])=>store.setItem(k,v,true));renderAll();t.classList.remove('on')};
+  t.append(sp,u);t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),6000)}
+document.getElementById('delsel').onclick=deleteSelection;
 
 boot();
