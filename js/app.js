@@ -31,6 +31,7 @@ const SB=(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase)?window.supabase
 let CAN_WRITE=true,MODE='local',USER=null,CHANNEL=null,FAM=null; // FAM : famille chargée {id,owner,reserve_mode}
 const MYFAMS=new Map();
 const HEDIT=new URLSearchParams(location.search).has('edithome'); // édition des feuilles d'exemple de l'accueil
+const QS=new URLSearchParams(location.search),FORCE_LOCAL=HEDIT||QS.has('demo')||QS.has('visiteur'); // démo dans le navigateur, même quand la base est branchée
 const LKEY=HEDIT?'collage-accueil-v1':'collage-saas-local-v1',RKEY='collage-mes-reservations';
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const slugify=s=>(s||'famille').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'famille';
@@ -75,7 +76,7 @@ const hashFam=()=>decodeURIComponent((location.hash||'').slice(1)).split('?')[0]
 async function boot(){
   try{const u=localStorage.getItem('collage-ui');if(u==='view')UI='view'}catch(e){}
   if(HEDIT)UI='edit';
-  if(!SB||HEDIT){ // ---- mode local (aucune base configurée, ou édition de l'accueil) : dans le navigateur
+  if(!SB||FORCE_LOCAL){ // ---- mode local (aucune base configurée, ou édition de l'accueil) : dans le navigateur
     let local=null;try{local=JSON.parse(localStorage.getItem(LKEY))}catch(e){}
     if(local&&local.sheets){(local.boards||[]).forEach(([k,v])=>S.boards.set(k,v));local.sheets.forEach(([k,v])=>S.sheets.set(k,v));local.items.forEach(([k,v])=>S.items.set(k,v));(local.res||[]).forEach(([k,v])=>S.res.set(k,v));
       if(!S.boards.size){const bid='demo';S.boards.set(bid,{name:'Ma famille',order:1});S.sheets.forEach(v=>v.board=bid)}}
@@ -1007,7 +1008,7 @@ document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const 
   try{if(homeTab==='new')localStorage.setItem('collage-pending-fam',name);else localStorage.removeItem('collage-pending-fam')}catch(e){}
   m.textContent='Envoi…';const {error}=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:PAGE_URL}});
   if(error){m.className='err';m.textContent='Erreur : '+error.message}else m.textContent='C’est envoyé ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
-HOME.querySelector('.hdemo').onclick=e=>{if(MODE==='cloud'){e.preventDefault();toast('L’exemple arrive bientôt')}};
+HOME.querySelector('.hdemo').href='?visiteur#demo';
 // stickers découpés (sans passer par les objets de la page)
 function stickerInto(c,im,P,flat,w){const m=flat?0:lisPx(im.naturalWidth,w||40),pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
   const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
