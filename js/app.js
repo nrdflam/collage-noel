@@ -505,7 +505,7 @@ function renderList(sid){
     if(resShown(id)){const t=document.createElement('span');t.className='rtag';t.textContent='Réservé';d.querySelector('.nm').appendChild(t)}
     if(it.ph){const t=document.createElement('span');t.className='rtag ph';t.textContent='exemple';d.querySelector('.nm').appendChild(t)}
     rsvUI(id,d.querySelector('.rsv'));
-    if(it.price||it.brand)d.querySelector('.pr').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
+    if(it.price||it.brand)d.querySelector('.pr').textContent=[it.brand,fmtPrice(it.price)].filter(Boolean).join(' · ');
     if(it.color){const co=d.querySelector('.co');co.querySelector('span').textContent=it.color.n;const dot=co.querySelector('i');if(it.color.h)dot.style.background=it.color.h;else dot.classList.add('any')}if(it.note)d.querySelector('.nt').textContent=it.note;
     const lk=d.querySelector('.lk');
     (it.links||[]).forEach(l=>{if(!/^https?:\/\//i.test(l.url||''))return;const a=document.createElement('a');a.className='buy';a.href=l.url;a.target='_blank';a.rel='noopener';a.innerHTML=svg.cart+'<span></span>';a.querySelector('span').textContent=l.label||hostOf(l.url);lk.appendChild(a)});
@@ -659,6 +659,8 @@ document.getElementById('fdel').onclick=()=>{if(F?.id){const sid=S.items.get(F.i
 // éviter que les touches du formulaire déclenchent les raccourcis
 form.addEventListener('keydown',e=>{if(e.key==='Escape')closeForm();e.stopPropagation()});
 
+/* prix : on ajoute « € » si aucune devise n'est indiquée */
+function fmtPrice(v){v=String(v||'').trim();if(!v||!/\d/.test(v)||/€|\$|£|¥|eur|chf|usd|gbp/i.test(v))return v;return v.replace(/\.(\d{1,2})$/,',$1')+' €'}
 function hasAlpha(g,W,H){const d=g.getImageData(0,0,W,H).data;for(let i=3;i<d.length;i+=4*97)if(d[i]<200)return true;return false}
 /* Détourage : on ne supprime jamais le fond, on cherche le contour de l'objet pour que les ciseaux passent au plus près.
    1) fond uni (photo de boutique) : remplissage depuis les bords ; 2) photo « in situ » : segmentation (SlimSAM, dans le navigateur). */
@@ -741,7 +743,7 @@ async function prepImage(file,autoP){
 form.addEventListener('submit',async e=>{
   e.preventDefault();if(!F)return;const err=document.getElementById('ferr');err.textContent='';
   const name=document.getElementById('f_name').value.trim();if(!name){err.textContent='Il faut un nom.';return}
-  const data={...(F.polyN!==undefined?{polyN:F.polyN||null}:{}),name,price:document.getElementById('f_price').value.trim(),brand:document.getElementById('f_brand').value.trim(),color:F.color||null,note:document.getElementById('f_note').value.trim(),
+  const data={...(F.polyN!==undefined?{polyN:F.polyN||null}:{}),name,price:fmtPrice(document.getElementById('f_price').value),brand:document.getElementById('f_brand').value.trim(),color:F.color||null,note:document.getElementById('f_note').value.trim(),
     q:document.getElementById('f_q').value.trim(),links:[...document.querySelectorAll('#f_links .l')].map(r=>({label:r.children[0].value.trim(),url:r.children[1].value.trim()})).filter(l=>l.url)};
   data.links.forEach(l=>{if(l.url&&!/^https?:\/\//i.test(l.url))l.url='https://'+l.url});
   if(!F.id&&!F.file){err.textContent='Ajoute une image.';return}
