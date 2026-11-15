@@ -401,3 +401,6 @@
   #hbar button{border:0;border-radius:999px;padding:6px 12px;font:500 12px Inter;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
   #hbar button:hover{background:rgba(255,255,255,.22)}
   #hbar button.pri{background:#e5533d}
+  .hside .ex img{position:absolute;inset:0;width:100%;height:100%;display:block;filter:url(#deckle) drop-shadow(0 1px 1px rgba(60,40,20,.22)) drop-shadow(0 12px 22px rgba(60,40,20,.16))}
+  #hbar.ed{top:68px;bottom:auto;left:auto;right:16px;transform:none;max-width:280px;align-items:stretch;text-align:left}
+  #hbar.ed div{justify-content:flex-start}

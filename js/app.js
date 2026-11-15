@@ -30,7 +30,8 @@ const CFG=window.COLLAGE_CONFIG||{};
 const SB=(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase)?window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey,{auth:{flowType:'pkce',detectSessionInUrl:true,persistSession:true}}):null;
 let CAN_WRITE=true,MODE='local',USER=null,CHANNEL=null,FAM=null; // FAM : famille chargée {id,owner,reserve_mode}
 const MYFAMS=new Map();
-const LKEY='collage-saas-local-v1',RKEY='collage-mes-reservations';
+const HEDIT=new URLSearchParams(location.search).has('edithome'); // édition des feuilles d'exemple de l'accueil
+const LKEY=HEDIT?'collage-accueil-v1':'collage-saas-local-v1',RKEY='collage-mes-reservations';
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const slugify=s=>(s||'famille').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'famille';
 const stripLocal=v=>{const o={...v};delete o._;return o};
@@ -60,6 +61,9 @@ const store={
   setCfg(){saveLocal()}
 };
 
+function seedAccueil(){const L=defaultHomeLayout();S.boards.set('accueil',{name:'Accueil · exemples',subtitle:'',order:1});
+  L.sheets.forEach((e,i)=>{const sid='h'+(i+1);S.sheets.set(sid,{order:i+1,title:'',subtitle:'',font:['Caveat','Fraunces','Permanent Marker','Instrument Serif'][i%4],paper:e.paper,board:'accueil',deco:40});
+    e.st.forEach((o,j)=>S.items.set(sid+'i'+j,{sheet:sid,n:j+1,name:'Sticker',price:'',note:'',links:[],q:'',src:'builtin:'+o.k,x:o.x,y:o.y,w:o.w,a:o.a,z:j+1,seed:700+j}))})}
 function seedDemoLocal(){
   const bid='demo';S.boards.set(bid,{name:'Famille Exemple',subtitle:'Listes de Noël',order:1});
   const sid='s'+uid();S.sheets.set(sid,{...DEMO.sheet,board:bid});
@@ -70,12 +74,13 @@ const hashFam=()=>decodeURIComponent((location.hash||'').slice(1)).split('?')[0]
 
 async function boot(){
   try{const u=localStorage.getItem('collage-ui');if(u==='view')UI='view'}catch(e){}
-  if(!SB){ // ---- mode local (aucune base configurée) : démo dans le navigateur
+  if(HEDIT)UI='edit';
+  if(!SB||HEDIT){ // ---- mode local (aucune base configurée, ou édition de l'accueil) : dans le navigateur
     let local=null;try{local=JSON.parse(localStorage.getItem(LKEY))}catch(e){}
     if(local&&local.sheets){(local.boards||[]).forEach(([k,v])=>S.boards.set(k,v));local.sheets.forEach(([k,v])=>S.sheets.set(k,v));local.items.forEach(([k,v])=>S.items.set(k,v));(local.res||[]).forEach(([k,v])=>S.res.set(k,v));
       if(!S.boards.size){const bid='demo';S.boards.set(bid,{name:'Ma famille',order:1});S.sheets.forEach(v=>v.board=bid)}}
-    else seedDemoLocal();
-    pickBoard();recomputeEdit();renderAll();setStatus('Mode local (non partagé)',false);renderAccount();if(!hashFam())showHome();return}
+    else if(HEDIT)seedAccueil();else seedDemoLocal();
+    pickBoard();recomputeEdit();renderAll();setStatus('Mode local (non partagé)',false);renderAccount();if(!hashFam())showHome();else accueilBar();return}
   MODE='cloud';CAN_WRITE=false;UI='view';setStatus('Chargement…',false);
   const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;
   {const q=new URLSearchParams(location.search);if(q.has('code')){q.delete('code');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}}
@@ -172,7 +177,7 @@ function setUI(u){UI=u;VIEW=u==='view'?'stack':'open';try{localStorage.setItem('
 const firstBoard=()=>[...S.boards].sort((a,b)=>(a[1].order||0)-(b[1].order||0))[0]?.[0]||null;
 function pickBoard(){const h=hashFam();const want=S.boards.has(h)?h:(S.boards.has(activeBoard)?activeBoard:firstBoard());
   if(want!==activeBoard){activeBoard=want;activeSheet=null}syncBrand()}
-addEventListener('hashchange',()=>{const h=hashFam();if(MODE==='cloud'){if(h&&h!==activeBoard)loadFamily(h);else if(!h)afterAuth();return}if(!h){showHome();return}hideHome();pickBoard();recomputeEdit();renderAll(true)});
+addEventListener('hashchange',()=>{const h=hashFam();if(MODE==='cloud'){if(h&&h!==activeBoard)loadFamily(h);else if(!h)afterAuth();return}if(!h){showHome();return}hideHome();pickBoard();recomputeEdit();renderAll(true);accueilBar()});
 function syncBrand(){const f=document.querySelector('#brand .fam'),s=document.querySelector('#brand .fsub');if(!f)return;const b=S.boards.get(activeBoard);
   if(document.activeElement!==f)f.textContent=b?.name||'';f.contentEditable=EDIT?'true':'false';
   if(s){if(document.activeElement!==s)s.textContent=b?.subtitle??'Listes de Noël';s.contentEditable=EDIT?'true':'false'}
@@ -812,7 +817,11 @@ function famMenu(){BM.innerHTML='';
     item(`<span class="tg ${vis?'on':''}"></span>La famille voit les réservations`,()=>{store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});closeMenus();
       toast(vis?'Réservations cachées à la famille : surprise garantie':'Réservations visibles par la famille');setTimeout(()=>loadRes().then(()=>renderAll()),900)})}
   if(EDIT&&(MODE==='local'||(CAN_WRITE&&FAM&&USER&&FAM.owner===USER.id))){if(MODE==='local')head('Cette famille');item('Supprimer cette famille…',()=>{closeMenus();askDeleteFamily()},'danger')}
-  if(MODE==='local'){head('Mode local');const n=document.createElement('div');n.className='mnote';n.textContent='Rien n’est partagé : configure Supabase (README) pour publier tes listes.';BM.appendChild(n)}
+  if(HEDIT&&activeBoard==='accueil'){head('Accueil');
+    item('<b style="color:var(--accent)">Voir l’accueil avec ces feuilles</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
+    item('Copier pour Claude',()=>{closeMenus();copyAccueil()});
+    const n=document.createElement('div');n.className='mnote';n.textContent='Les 4 premières feuilles vont sur l’accueil (2 à gauche, 2 à droite).';BM.appendChild(n)}
+  else if(MODE==='local'){head('Mode local');const n=document.createElement('div');n.className='mnote';n.textContent='Rien n’est partagé : configure Supabase (README) pour publier tes listes.';BM.appendChild(n)}
 }
 document.getElementById('boardsbtn').onclick=e=>{e.stopPropagation();const o=BM.classList.contains('open');closeMenus();if(o)return;famMenu();BM.classList.add('open')};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -974,86 +983,45 @@ function stickerInto(c,im,P,flat){const m=flat?0:S.cfg.margin,pad=m+10;let x0=1e
   const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
   return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
 async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat).scale}
-/* ---------- mise en page de l'accueil : une donnée, éditable avec ?edithome ---------- */
-const HOME_LAYOUT=null; // fixée ici une fois la mise en page validée
-const HKEY='collage-home-layout',HEDIT=new URLSearchParams(location.search).has('edithome');
-function defaultHomeLayout(){
-  const L={center:[['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
-    .map(([k,x,y,w,a])=>({k,x,y,w,a,flat:false})),sheets:[]};
-  [{side:'hl',dx:-104,dy:-50,r:-7,paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},
-   {side:'hl',dx:-38,dy:-44,r:4,paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},
-   {side:'hr',dx:-62,dy:-52,r:6,paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},
-   {side:'hr',dx:4,dy:-46,r:-5,paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}].forEach(e=>{
+/* ---------- feuilles d'exemple de l'accueil ----------
+   Elles s'éditent comme de vraies listes : ouvrir ?edithome, puis « Modifier les exemples » (famille #accueil).
+   L'accueil affiche une image de chaque feuille. Une fois validées, ces images sont figées dans img/home/. */
+const HOME_IMAGES=null; // ex. ['img/home/ex1.jpg',…] une fois la mise en page validée
+const HSLOTS=[{side:'hl',dx:-104,dy:-50,r:-7},{side:'hl',dx:-38,dy:-44,r:4},{side:'hr',dx:-62,dy:-52,r:6},{side:'hr',dx:4,dy:-46,r:-5}];
+function defaultHomeLayout(){const L={sheets:[]};
+  [{paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},{paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},
+   {paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},{paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}].forEach(e=>{
     const R=rng(e.seed),keys=randomStickers(e.n,e.seed*101),widths=keys.map((_,j)=>e.sizes[j%e.sizes.length]*(.85+R()*.3));
-    const st=packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
-      .map(o=>({k:o.k,x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a,flat:e.flat}));
-    L.sheets.push({side:e.side,dx:e.dx,dy:e.dy,r:e.r,paper:e.paper,st})});
+    L.sheets.push({paper:e.paper,flat:e.flat,st:packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
+      .map(o=>({k:o.k,x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a,flat:e.flat}))})});
   return L}
-function homeLayout(){if(HEDIT){try{const l=JSON.parse(localStorage.getItem(HKEY));if(l&&l.sheets)return l}catch(e){}}return HOME_LAYOUT?JSON.parse(JSON.stringify(HOME_LAYOUT)):defaultHomeLayout()}
-let HL=null,hSel=null;
+const HIMG_KEY='collage-home-images';
+function homeImages(){if(HEDIT){try{const a=JSON.parse(localStorage.getItem(HIMG_KEY));if(Array.isArray(a)&&a.length)return a}catch(e){}}return HOME_IMAGES}
 function renderStk(c){const d=c._d;drawSticker(c,d.k,d.flat).then(sc=>{c.style.left=d.x+'%';c.style.top=d.y+'%';c.style.width=(d.w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${d.a}deg)`}).catch(()=>{})}
-function placeSticker(parent,d){const c=document.createElement('canvas');c._d=d;parent.appendChild(c);renderStk(c);if(HEDIT)hookStk(c);return c}
+function placeSticker(parent,d){const c=document.createElement('canvas');c._d=d;parent.appendChild(c);renderStk(c);return c}
 function buildHome(){
-  HL=homeLayout();
   const st=HOME.querySelector('.hstk');st.innerHTML='';HOME.querySelectorAll('.hside').forEach(h=>h.innerHTML='');
-  HL.center.forEach(d=>placeSticker(st,d));
-  HL.sheets.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';d._e=e;
-    d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';
-    d.innerHTML=`<div class="paper p-${e.paper}"></div><div class="ruling r-${e.paper}" style="--deco:.4"></div>`;host.appendChild(d);
-    e.st.forEach(o=>placeSticker(d,o));if(HEDIT)hookSheet(d)});
-  if(HEDIT)homeEditor()}
-function hookSheet(d){const e=d._e,T=()=>{d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`};
-  d.addEventListener('pointerdown',ev=>{if(ev.target.tagName==='CANVAS')return;ev.preventDefault();hSelect(null);hSheet=d;
-    const W=d.offsetWidth,H=d.offsetHeight,x0=e.dx,y0=e.dy,p0=[ev.clientX,ev.clientY];d.setPointerCapture(ev.pointerId);
-    const mv=m=>{e.dx=+(x0+(m.clientX-p0[0])/W*100).toFixed(1);e.dy=+(y0+(m.clientY-p0[1])/H*100).toFixed(1);T()};
-    const up=()=>{d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);hSave()};
-    d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up)});
-  d.addEventListener('wheel',ev=>{if(ev.target.tagName==='CANVAS')return;ev.preventDefault();e.r=+(e.r+(ev.deltaY>0?.5:-.5)).toFixed(1);T();hSave()},{passive:false});
-  d.addEventListener('dblclick',ev=>{if(ev.target.tagName==='CANVAS')return;const host=d.parentNode;host.appendChild(d);const arr=HL.sheets;arr.splice(arr.indexOf(e),1);arr.push(e);hSave()})}
-let hSheet=null;
-
-/* ---------- éditeur de l'accueil (?edithome) ---------- */
-function hSave(){try{localStorage.setItem(HKEY,JSON.stringify(HL))}catch(e){}}
-function listOf(c){const ex=c.parentNode.closest?.('.ex');return ex?ex._e.st:HL.center}
-function hSelect(c){if(c)hSheet=null;HOME.querySelectorAll('canvas.hsel').forEach(x=>x.classList.remove('hsel'));hSel=c;if(c)c.classList.add('hsel')}
-function hookStk(c){
-  c.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();hSelect(c);c.parentNode.appendChild(c); // au premier plan
-    const arr=listOf(c);arr.splice(arr.indexOf(c._d),1);arr.push(c._d);
-    const P=c.parentNode.getBoundingClientRect(),host=c.parentNode.closest('.ex'),rot=host?host._e.r*Math.PI/180:0;
-    const W=c.parentNode.offsetWidth,H=c.parentNode.offsetHeight,x0=c._d.x,y0=c._d.y,p0=[e.clientX,e.clientY];c.setPointerCapture(e.pointerId);
-    const mv=ev=>{const dx=ev.clientX-p0[0],dy=ev.clientY-p0[1],ux=dx*Math.cos(-rot)-dy*Math.sin(-rot),uy=dx*Math.sin(-rot)+dy*Math.cos(-rot);
-      c._d.x=+(x0+ux/W*100).toFixed(2);c._d.y=+(y0+uy/H*100).toFixed(2);c.style.left=c._d.x+'%';c.style.top=c._d.y+'%'};
-    const up=()=>{c.removeEventListener('pointermove',mv);c.removeEventListener('pointerup',up);hSave()};
-    c.addEventListener('pointermove',mv);c.addEventListener('pointerup',up)});
-  c.addEventListener('wheel',e=>{e.preventDefault();hSelect(c);const d=c._d;
-    if(e.shiftKey||e.altKey)d.a=Math.round(d.a+(e.deltaY>0?3:-3));else d.w=+Math.max(4,d.w*(e.deltaY>0?.95:1.05)).toFixed(2);renderStk(c);hSave()},{passive:false});
-  c.addEventListener('dblclick',e=>{e.stopPropagation();hCycle(c,'shape')})}
-function hCycle(c,what){const d=c._d,p=parsePH(d.k),cs=Object.keys(STK_COLORS);
-  if(what==='shape')p.shape=STK_SHAPES[(STK_SHAPES.indexOf(p.shape)+1)%STK_SHAPES.length];
-  if(what==='color')p.color=cs[(cs.indexOf(p.color)+1)%cs.length];
-  if(what==='seed')p.seed=Math.floor(Math.random()*900);
-  d.k=`ph-${p.shape}-${p.color}-${p.seed}`;renderStk(c);hSave()}
-function homeEditor(){
-  document.body.classList.add('hedit');
-  let bar=document.getElementById('hbar');if(bar)bar.remove();bar=document.createElement('div');bar.id='hbar';
-  bar.innerHTML=`<b>Édition de l’accueil</b>
-    <span>Sticker : glisser = déplacer · molette = taille · Maj + molette = rotation · double-clic = forme · <kbd>C</kbd> couleur · <kbd>V</kbd> variante · <kbd>F</kbd> liseré · <kbd>Suppr</kbd> retirer · <kbd>D</kbd> dupliquer<br>Feuille (clic sur le papier) : glisser = déplacer · molette = rotation · double-clic = passer devant</span>
-    <div><button data-a="add">+ Sticker</button><button data-a="paper">Papier suivant</button><button data-a="pack">Ranger la feuille</button><button data-a="reset">Tout réinitialiser</button><button data-a="copy" class="pri">Copier la mise en page</button></div>`;
-  document.body.appendChild(bar);
-  const target=()=>hSel?(hSel.parentNode.closest('.ex')||null):hSheet;
-  bar.onclick=async e=>{const a=e.target.dataset?.a;if(!a)return;
-    if(a==='add'){const ex=target(),par=ex||HOME.querySelector('.hstk'),arr=ex?ex._e.st:HL.center,d={k:randomStickers(1,Date.now()%9999)[0],x:50,y:50,w:30,a:0,flat:false};arr.push(d);hSelect(placeSticker(par,d));hSave()}
-    if(a==='paper'){const ex=target();if(!ex){toast('Clique d’abord un sticker de la feuille à changer');return}const ps=PAPERS.map(p=>p[0]);ex._e.paper=ps[(ps.indexOf(ex._e.paper)+1)%ps.length];
-      ex.querySelector('.paper').className='paper p-'+ex._e.paper;ex.querySelector('.ruling').className='ruling r-'+ex._e.paper;hSave()}
-    if(a==='pack'){const ex=target();if(!ex){toast('Clique d’abord un sticker de la feuille à ranger');return}const st=ex._e.st,flat=st.every(o=>o.flat);
-      const P=packSquare(st.map(o=>o.k),st.map(o=>o.w),{x0:7,x1:93,y0:9,y1:91},297/210,Date.now()%9999,{margin:flat?0:S.cfg.margin,gap:flat?16:12,res:1.4,start:1.15});
-      P.forEach((o,i)=>Object.assign(st[i],{x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a}));hSave();buildHome()}
-    if(a==='reset'){if(!confirm('Revenir à la mise en page de départ ?'))return;localStorage.removeItem(HKEY);hSel=null;buildHome()}
-    if(a==='copy'){const t=JSON.stringify(HL);try{await navigator.clipboard.writeText(t);toast('Mise en page copiée : colle-la à Claude')}catch(err){prompt('Copie ce texte :',t)}}};
-  if(!window._hkeys){window._hkeys=true;addEventListener('keydown',e=>{if(!hSel||e.target.closest?.('input,textarea'))return;const k=e.key.toLowerCase();
-    if(k==='c')hCycle(hSel,'color');else if(k==='v')hCycle(hSel,'seed');else if(k==='f'){hSel._d.flat=!hSel._d.flat;renderStk(hSel);hSave()}
-    else if(k==='d'){const arr=listOf(hSel),d={...hSel._d,x:hSel._d.x+4,y:hSel._d.y+3};arr.push(d);hSelect(placeSticker(hSel.parentNode,d));hSave()}
-    else if(k==='delete'||k==='backspace'){e.preventDefault();const arr=listOf(hSel);arr.splice(arr.indexOf(hSel._d),1);hSel.remove();hSel=null;hSave()}
-    else if(k.startsWith('arrow')){e.preventDefault();const st=e.shiftKey?2:.4;if(k==='arrowleft')hSel._d.x-=st;if(k==='arrowright')hSel._d.x+=st;if(k==='arrowup')hSel._d.y-=st;if(k==='arrowdown')hSel._d.y+=st;renderStk(hSel);hSave()}})}}
+  [['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
+    .forEach(([k,x,y,w,a])=>placeSticker(st,{k,x,y,w,a,flat:false}));
+  const imgs=homeImages(),L=imgs?null:defaultHomeLayout();
+  HSLOTS.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';
+    d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';host.appendChild(d);
+    if(imgs){if(!imgs[i])return;const im=new Image();im.src=imgs[i];im.alt='';d.appendChild(im);return}
+    const ex=L.sheets[i];d.innerHTML=`<div class="paper p-${ex.paper}"></div><div class="ruling r-${ex.paper}" style="--deco:.4"></div>`;ex.st.forEach(o=>placeSticker(d,o))});
+  if(HEDIT){let bar=document.getElementById('hbar');if(!bar){bar=document.createElement('div');bar.id='hbar';document.body.appendChild(bar)}
+    bar.innerHTML=`<b>Aperçu de l’accueil</b><div><button data-a="edit" class="pri">Modifier les exemples</button>${imgs?'<button data-a="reset">Revenir aux exemples de départ</button>':''}</div>`;
+    bar.onclick=e=>{const a=e.target.dataset?.a;if(a==='edit'){bar.remove();location.hash='accueil'}
+      if(a==='reset'&&confirm('Effacer tes feuilles d’exemple et repartir de celles de départ ?')){localStorage.removeItem(HIMG_KEY);localStorage.removeItem(LKEY);location.reload()}}}}
+function accueilBar(){if(!HEDIT)return;let bar=document.getElementById('hbar');if(!bar){bar=document.createElement('div');bar.id='hbar';document.body.appendChild(bar)}
+  bar.classList.add('ed');bar.innerHTML=`<b>Feuilles d’exemple de l’accueil</b><span>Édite-les comme une liste normale. Les 4 premières vont sur l’accueil (2 à gauche, 2 à droite).</span><div><button data-a="see" class="pri">Voir l’accueil</button><button data-a="copy">Copier pour Claude</button></div>`;
+  bar.onclick=async e=>{const a=e.target.dataset?.a;if(a==='see'&&await makeHomeImages())location.href=location.pathname+'?edithome';if(a==='copy')copyAccueil()}}
+// depuis l'éditeur (#accueil) : fabriquer les images des feuilles et revenir à l'accueil
+async function makeHomeImages(){const ss=sortedSheets().map(x=>x[0]).slice(0,4),prev=activeSheet,out=[];toast('Préparation de l’aperçu…');
+  for(const id of ss){activeSheet=id;const blob=await sheetPNG(),bmp=await createImageBitmap(blob),c=document.createElement('canvas');c.width=760;c.height=Math.round(760*bmp.height/bmp.width);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);out.push(c.toDataURL('image/jpeg',.86))}
+  activeSheet=prev;try{localStorage.setItem(HIMG_KEY,JSON.stringify(out))}catch(e){toast('Images trop lourdes pour l’aperçu');return null}return out}
+async function copyAccueil(){const b=S.boards.get('accueil')||{},sh=[...S.sheets].filter(([,v])=>v.board==='accueil'),ids=new Set(sh.map(x=>x[0]));
+  const data={app:'collage-noel',version:1,accueil:true,board:b,sheets:sh,items:[...S.items].filter(([,v])=>ids.has(v.sheet))},t=JSON.stringify(data);
+  try{await navigator.clipboard.writeText(t);toast(t.length>400000?'Copié (gros texte : tes images sont dedans). Colle-le à Claude.':'Copié : colle-le à Claude')}catch(e){prompt('Copie ce texte :',t)}}
 
 boot();
