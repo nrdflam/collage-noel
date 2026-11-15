@@ -986,8 +986,8 @@ async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);re
 /* ---------- feuilles d'exemple de l'accueil ----------
    Elles s'éditent comme de vraies listes : ouvrir ?edithome, puis « Modifier les exemples » (famille #accueil).
    L'accueil affiche une image de chaque feuille. Une fois validées, ces images sont figées dans img/home/. */
-const HOME_IMAGES=null; // ex. ['img/home/ex1.jpg',…] une fois la mise en page validée
-const HSLOTS=[{side:'hl',dx:-104,dy:-50,r:-7},{side:'hl',dx:-38,dy:-44,r:4},{side:'hr',dx:-62,dy:-52,r:6},{side:'hr',dx:4,dy:-46,r:-5}];
+const HOME_IMAGES=['img/home/ex1.jpg','img/home/ex2.jpg','img/home/ex3.jpg','img/home/ex4.jpg']; // feuilles validées le 15/11/2026
+const HSLOTS=[{side:'hl',dx:-104,dy:-50,r:-7},{side:'hl',dx:-38,dy:-44,r:4},{side:'hr',dx:-62,dy:-52,r:6,z:2},{side:'hr',dx:4,dy:-46,r:-5,z:1}];
 function defaultHomeLayout(){const L={sheets:[]};
   [{paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},{paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},
    {paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},{paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}].forEach(e=>{
@@ -1005,7 +1005,7 @@ function buildHome(){
     .forEach(([k,x,y,w,a])=>placeSticker(st,{k,x,y,w,a,flat:false}));
   const imgs=homeImages(),L=imgs?null:defaultHomeLayout();
   HSLOTS.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';
-    d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';host.appendChild(d);
+    d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';if(e.z)d.style.zIndex=e.z;host.appendChild(d);
     if(imgs){if(!imgs[i])return;const im=new Image();im.src=imgs[i];im.alt='';d.appendChild(im);return}
     const ex=L.sheets[i];d.innerHTML=`<div class="paper p-${ex.paper}"></div><div class="ruling r-${ex.paper}" style="--deco:.4"></div>`;ex.st.forEach(o=>placeSticker(d,o))});
   if(HEDIT){let bar=document.getElementById('hbar');if(!bar){bar=document.createElement('div');bar.id='hbar';document.body.appendChild(bar)}
