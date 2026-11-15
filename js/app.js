@@ -917,9 +917,8 @@ const BM=document.getElementById('boardsmenu');
 function famMenu(){BM.innerHTML='';
   const head=t=>{const h=document.createElement('div');h.className='mh';h.textContent=t;BM.appendChild(h)};
   const item=(html,fn,cls)=>{const x=document.createElement('button');x.innerHTML=html;if(cls)x.className=cls;x.onclick=fn;BM.appendChild(x);return x};
-  const fams=[...S.boards].filter(([id])=>MODE==='local'||MYFAMS.has(id)).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-  head('Mes listes');fams.forEach(([id,b])=>item((id===activeBoard?'✓ ':'')+esc(b.name||'Sans nom'),()=>{closeMenus();if(MODE==='cloud')location.hash=id;else{location.hash=id;pickBoard();renderAll()}},id===activeBoard?'cur':''));
-  item('<b style="color:var(--accent)">+ Nouvelle liste</b>',()=>{closeMenus();MODE==='cloud'?createFamily('Nouvelle liste'):newBoard('Nouvelle liste')});
+  item('Toutes mes listes · accueil',()=>{closeMenus();goHome()});
+  item('<b style="color:var(--accent)">+ Nouvelle liste</b>',()=>{closeMenus();newList()});
   if(MODE==='cloud'&&CAN_WRITE){head('Partage');
     item('Inviter quelqu’un à modifier cette liste',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
       const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}})}
@@ -932,6 +931,10 @@ function famMenu(){BM.innerHTML='';
   if(MODE==='local'&&!HEDIT){const n=document.createElement('div');n.className='mnote';n.textContent='Mode local : rien n’est partagé.';BM.appendChild(n)}
 }
 document.getElementById('boardsbtn').onclick=e=>{e.stopPropagation();const o=BM.classList.contains('open');closeMenus();if(o)return;famMenu();BM.classList.add('open')};
+function myLists(){return [...(MODE==='cloud'?MYFAMS:S.boards)].filter(([id])=>id!=='accueil').map(([id,b])=>({id,name:b.name||'Sans nom',order:b.order||0})).sort((a,b)=>a.order-b.order)}
+function newList(){MODE==='cloud'?createFamily('Nouvelle liste'):newBoard('Nouvelle liste')}
+function goHome(){closeMenus();history.replaceState(null,'',location.pathname+location.search);showHome()}
+document.getElementById('homebtn').onclick=goHome;
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function newBoard(name){const id='b'+uid(),max=Math.max(0,...[...S.boards.values()].map(b=>b.order||0));store.setBoard(id,{name,subtitle:'Listes de Noël',order:max+1});
   location.hash=id;activeBoard=id;activeSheet=null;addSheet();syncBrand();setTimeout(()=>{famEl.focus();document.getSelection().selectAllChildren(famEl)},50)}
@@ -1092,7 +1095,7 @@ const pendingName=()=>{try{return localStorage.getItem('collage-pending-fam')||'
 function showHome(msg){document.body.classList.add('home');hideWelcome();
   HOME.classList.toggle('logged',!!USER);setHomeTab(USER?'new':homeTab);
   const m=document.getElementById('hmsg');m.className=msg?'err':'';m.textContent=msg||(USER?'Connecté : '+(USER.email||''):'Pas de mot de passe : tu reçois un lien de connexion par mail.');
-  if(!homeBuilt){homeBuilt=true;buildHome()}}
+  if(!homeBuilt){homeBuilt=true;buildHome()}renderFavs()}
 function hideHome(){document.body.classList.remove('home')}
 function setHomeTab(t){homeTab=t;HOME.classList.toggle('login',t==='login');HOME.querySelectorAll('.htabs button').forEach(b=>b.classList.toggle('cur',b.dataset.t===t));
   document.getElementById('hgo').textContent=t==='login'?'Recevoir mon lien de connexion':'Créer ma liste';HOME.querySelector('.htabs').style.display=USER?'none':''}
@@ -1172,7 +1175,12 @@ function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeB
   const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
   document.getElementById('favwrap').style.display=(UI==='view'&&!CAN_WRITE)?'':'none';
   document.getElementById('mklist').style.display=(UI==='view'&&!CAN_WRITE)?'inline-block':'none';
-  const h=document.getElementById('hfavs');h.innerHTML='';if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
+  const h=document.getElementById('hfavs');h.innerHTML='';
+  const mine=(CAN_WRITE||MODE==='cloud'&&USER)?myLists():[];
+  if(mine.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes';h.appendChild(t);
+    const w=document.createElement('div');w.className='hfw mine';mine.forEach(f=>{const x=document.createElement('a');x.href='#'+f.id;x.textContent=f.name;x.onclick=e=>{e.preventDefault();hideHome();if(location.hash==='#'+f.id||activeBoard===f.id){location.hash=f.id;renderAll(true)}else location.hash=f.id};w.appendChild(x)});
+    const n=document.createElement('a');n.href='#';n.className='new';n.textContent='+ Nouvelle liste';n.onclick=e=>{e.preventDefault();hideHome();newList()};w.appendChild(n);h.appendChild(w)}
+  if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
     const w=document.createElement('div');w.className='hfw';a.forEach(f=>{const x=document.createElement('a');x.href=favUrl(f.id);x.textContent=f.name;x.onclick=()=>hideHome();w.appendChild(x)});h.appendChild(w)}}
 document.getElementById('favstar').onclick=()=>{if(activeBoard)toggleFav(activeBoard)};
 const FVM=document.getElementById('favmenu');

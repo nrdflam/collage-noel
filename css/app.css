@@ -590,3 +590,13 @@
 #boardsbtn:hover,#famwrap:has(.menu.open) #boardsbtn{background:rgba(0,0,0,.06);color:var(--ink)}
 #famwrap #boardsmenu{top:calc(100% + 6px);left:0;transform:none;min-width:250px}
 #boardsmenu .msep{border:0;border-top:1px solid var(--line);margin:6px 4px}
+
+/* bouton accueil + infobulles du haut affichées en dessous (sinon hors écran) */
+#homebtn{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px);color:var(--ink);cursor:pointer;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;padding:0;flex:none;margin:0 8px 0 -4px;position:relative}
+#homebtn svg{width:16px;height:16px}
+#homebtn:hover{background:#fff}
+#boardsbtn{position:relative}
+#brand [data-tip]:hover::after{bottom:auto;top:calc(100% + 8px);left:0;transform:none;z-index:60}
+.hfavs .hfw a.new{color:var(--accent);border-style:dashed}
+.hfw.mine a::before{content:none}
+body:not(.stack) #brand .bsub{padding-left:34px}
