@@ -744,11 +744,12 @@ decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+'
   const el=spreads.get(activeSheet);el&&el.querySelector('.ruling').style.setProperty('--deco',v/100);
   clearTimeout(decoT);decoT=setTimeout(()=>{if(activeSheet)store.setSheet(activeSheet,{deco:v})},350)});
 decor.addEventListener('pointerdown',e=>e.stopPropagation());
-FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button>`;
+FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>La famille les voit</button><div class="mnote">Désactivé : la famille ne voit pas ce que ses proches ont réservé (surprise). Vaut pour toute la famille.</div>`;
 const SETM=document.getElementById('setmenu');
 function syncSet(){const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
   SETM.querySelector('[data-outline] .tg')?.classList.toggle('on',!!sh.outline);
+  SETM.querySelector('[data-resvis] .tg')?.classList.toggle('on',(S.boards.get(activeBoard)?.reserve_mode)==='visible');
   FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco()}
 function openMenu(m){const o=m.classList.contains('open');closeMenus();if(o)return;const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
@@ -757,7 +758,8 @@ document.getElementById('setbtn').onclick=e=>{e.stopPropagation();openMenu(SETM)
 SETM.addEventListener('pointerdown',e=>e.stopPropagation());
 document.getElementById('delbtn').onclick=e=>{e.stopPropagation();openMenu(DM)};
 PM.onclick=e=>{const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});syncSet()}};
-FM.onclick=e=>{if(e.target.closest('[data-outline]')&&activeSheet){store.setSheet(activeSheet,{outline:!S.sheets.get(activeSheet)?.outline});syncSet();return}
+FM.onclick=e=>{if(e.target.closest('[data-resvis]')&&activeBoard){const vis=(S.boards.get(activeBoard)?.reserve_mode)==='visible';store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});syncSet();if(MODE==='cloud')setTimeout(()=>loadRes().then(()=>renderAll()),900);return}
+  if(e.target.closest('[data-outline]')&&activeSheet){store.setSheet(activeSheet,{outline:!S.sheets.get(activeSheet)?.outline});syncSet();return}
   const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});syncSet()}};
 DM.querySelector('[data-no]').onclick=closeMenus;DM.querySelector('[data-yes]').onclick=()=>{closeMenus();if(!activeSheet)return;const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet),next=ss[i+1]||ss[i-1]||null;store.delSheet(activeSheet);if(next)setActive(next)};
 

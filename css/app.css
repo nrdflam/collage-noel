@@ -514,3 +514,5 @@
   .piece.reserved canvas{opacity:.22;filter:grayscale(.6);transition:opacity .3s}
   .piece.reserved::after{opacity:1!important}
   .entry.rsvd .nm{text-decoration:line-through;text-decoration-color:rgba(200,55,42,.5)}
+  .setmenu #fontmenu button[data-resvis]{font:13px Inter}
+  .setmenu .mnote{max-width:190px}
