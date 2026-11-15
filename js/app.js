@@ -638,7 +638,7 @@ addEventListener('paste',e=>{
   if(/^https?:\/\/\S+$/.test(txt)){e.preventDefault();openForm(null,{sheet:activeSheet,url:txt});return}
   const html=e.clipboardData?.getData('text/html')||'';const m=html.match(/<img[^>]+src=["']([^"']+)/i);
   if(m&&/^https?:/.test(m[1])){e.preventDefault();openForm(null,{sheet:activeSheet,url:m[1]})}});
-document.getElementById('fdel').onclick=()=>{if(F?.id){store.delItem(F.id);sel.delete(F.id);closeForm()}};
+document.getElementById('fdel').onclick=()=>{if(F?.id){const sid=S.items.get(F.id)?.sheet;store.delItem(F.id,true);sel.delete(F.id);if(sid)renumber(sid);renderAll();closeForm()}};
 // éviter que les touches du formulaire déclenchent les raccourcis
 form.addEventListener('keydown',e=>{if(e.key==='Escape')closeForm();e.stopPropagation()});
 
@@ -1089,10 +1089,12 @@ renderFavs();
 document.getElementById('mklist').onclick=()=>{closeMenus();if(USER){showWelcome()}else{history.replaceState(null,'',location.pathname);showHome();setHomeTab('new');setTimeout(()=>document.getElementById('hname').focus(),80)}};
 
 /* ---------- supprimer la sélection (avec « Annuler ») ---------- */
+function renumber(sid){[...S.items].filter(([,v])=>v.sheet===sid).sort((a,b)=>(a[1].n||0)-(b[1].n||0)).forEach(([k,v],i)=>{if(v.n!==i+1)store.setItem(k,{n:i+1},true)})}
 function deleteSelection(){const keys=[...sel].filter(k=>S.items.has(k));if(!keys.length)return;
-  const saved=keys.map(k=>[k,{...S.items.get(k)}]);keys.forEach(k=>{store.delItem(k,true);sel.delete(k)});renderAll();syncSel();
+  const sheets=new Set(keys.map(k=>S.items.get(k).sheet)),before=[...S.items].filter(([,v])=>sheets.has(v.sheet)).map(([k,v])=>[k,v.n]);
+  const saved=keys.map(k=>[k,{...S.items.get(k)}]);keys.forEach(k=>{store.delItem(k,true);sel.delete(k)});sheets.forEach(renumber);renderAll();syncSel();
   const t=document.getElementById('toast');t.innerHTML='';const sp=document.createElement('span');sp.textContent=keys.length>1?keys.length+' objets supprimés':'Objet supprimé';
-  const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{saved.forEach(([k,v])=>store.setItem(k,v,true));renderAll();t.classList.remove('on')};
+  const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{saved.forEach(([k,v])=>store.setItem(k,v,true));before.forEach(([k,n])=>{if(S.items.has(k)&&S.items.get(k).n!==n)store.setItem(k,{n},true)});renderAll();t.classList.remove('on')};
   t.append(sp,u);t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),6000)}
 document.getElementById('delsel').onclick=deleteSelection;
 
