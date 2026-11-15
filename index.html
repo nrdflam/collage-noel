@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collage de Noël</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="deckle" x="-2%" y="-2%" width="104%" height="104%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="2" seed="11" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<header id="brand"><div class="fam" spellcheck="false"></div><div class="bsub"><span class="fsub" spellcheck="false"></span><span class="wrap-rel" id="famwrap"><button id="boardsbtn">Famille ▾</button><div class="menu" id="boardsmenu"></div></span></div></header>
+<div id="topright"><div id="modes"><button data-m="edit">Éditer</button><button data-m="view">Aperçu</button></div><div class="wrap-rel" id="account"><button id="acctbtn">Se connecter</button><div class="menu" id="acctmenu"></div></div></div>
+<div id="stackhint">Clique sur une liste pour l’ouvrir</div>
+<div id="stage"></div>
+<nav id="pager"></nav>
+<div id="lasso"></div>
+<div id="status"><i></i><span>Chargement…</span></div>
+
+<div class="dock">
+  <button id="backstack" class="view-only" data-tip="Revoir toutes les listes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="11" height="14" rx="1.5" transform="rotate(-6 9 13)"/><rect x="9" y="4" width="11" height="14" rx="1.5" transform="rotate(5 14 11)"/></svg><span>Toutes les listes</span></button>
+  <div class="sep view-only"></div>
+  <button id="additem" class="primary edit-only" data-tip="Ajouter un objet · ou colle une image (⌘V)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Objet</span>
+  </button>
+  <div class="sep edit-only"></div>
+  <button id="selall" class="edit-only" data-tip="Tout sélectionner · ⌘A">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h2M11 3h2M17 3a2 2 0 0 1 2 2M3 7v2M3 13v2M3 5a2 2 0 0 1 2-2M5 19a2 2 0 0 1-2-2M9 19h2M19 9v2"/><path d="M13 13l8 3-3.5 1.5L16 21z" fill="currentColor"/></svg>
+    <span>Tout</span><span class="badge" id="count">0</span>
+  </button>
+  <button id="shuffle" class="edit-only" data-tip="Mélanger la feuille">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+  </button>
+  <div class="sep edit-only"></div>
+  <div class="wrap-rel edit-only"><button id="paperbtn" data-tip="Papier de la feuille">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></button><div class="menu up" id="papermenu"></div></div>
+  <div class="wrap-rel edit-only"><button id="fontbtn" data-tip="Police du titre">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9.5 5h1L16 19M6.3 14h7.4M17 10.5c.7-.6 1.6-1 2.5-1 1.5 0 2.5.9 2.5 2.5V19M22 15.5c-.8-.6-1.7-.8-2.7-.8-1.5 0-2.8.8-2.8 2.2s1.1 2.1 2.5 2.1c1.3 0 2.4-.8 3-2"/></svg></button><div class="menu up fontmenu" id="fontmenu"></div></div>
+  <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer la feuille">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+    <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette feuille et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
+  <div class="sep edit-only"></div>
+  <div class="wrap-rel"><button id="sharebtn" class="share">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Partager</span></button>
+    <div class="menu up sharemenu" id="sharemenu">
+      <button id="sh_link"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span><b>Copier le lien</b><small>Pour partager en ligne</small></span></button>
+      <button id="sh_png"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span><b>Télécharger l’image</b><small>PNG de la feuille, format A4</small></span></button>
+      <button id="sh_copyimg"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span><b>Copier l’image</b><small>À coller dans un message</small></span></button>
+      <div class="sec edit-only" style="display:block">Sauvegarde</div>
+      <button id="sh_backup" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 19h14"/></svg><span><b>Exporter une sauvegarde</b><small>Fichier .json de toute la famille</small></span></button>
+      <button id="sh_restore" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5"/><path d="M5 5h14"/></svg><span><b>Importer une sauvegarde</b><small>Crée une copie, sans rien écraser</small></span></button>
+      <input type="file" id="restorefile" accept="application/json,.json" hidden>
+      <div class="shnote">Pour que tes proches voient la page, active aussi le partage depuis le bouton « Partager » de Claude, en haut de la page.</div>
+    </div></div>
+</div>
+
+<div id="dev">
+  <h3>Découpe <kbd>D</kbd></h3>
+  <div id="sliders"></div>
+  <div class="grp">
+    <label class="tog"><span>Contour de l’objet</span><input type="checkbox" id="dbg"><i class="s"></i></label>
+    <div class="row"><button class="btn" id="reseed">Re-tirer la feuille</button><button class="btn" id="copy">Copier les réglages</button></div>
+    <textarea id="out" readonly></textarea>
+  </div>
+  <div class="hint">Double-clic sur une image : nouvelle découpe.<br>Shift/⌘+clic ou lasso pour une sélection multiple. Échap pour désélectionner, flèches pour décaler.</div>
+</div>
+
+<div id="modal">
+  <form class="card" id="form" autocomplete="off">
+    <h3 id="ftitle">Ajouter un objet</h3>
+    <div>
+      <div class="dz" id="dz"><div id="dzt">Glisse une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div></div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+    <div class="fields">
+      <label>Lien du produit<span class="urlrow"><input id="f_url" placeholder="Colle un lien Amazon, Lego, Fnac…" inputmode="url"><button type="button" class="btn" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label>
+      <label>Nom<input id="f_name" required placeholder="Lego Pua"></label>
+      <label>Prix, magasin, référence<input id="f_price" placeholder="69,99 € · Lego.com"></label>
+      <label>Petite note<textarea id="f_note" rows="2" placeholder="Le cochon de Vaiana. 9+ : papa se dévoue."></textarea></label>
+      <div class="links"><div style="font-weight:500;font-size:12px;color:#55504a;margin-bottom:4px">Liens</div><div id="f_links"></div>
+        <button type="button" class="addlink" id="addlink">+ Ajouter un lien</button></div>
+      <label>Recherche pré-remplie<input id="f_q" placeholder="Par défaut : le nom"></label>
+    </div>
+    <div class="actions"><span class="err" id="ferr"></span><button type="button" class="btn danger" id="fdel" style="flex:none">Supprimer</button><span class="sp"></span>
+      <button type="button" class="btn" id="fcancel" style="flex:none">Annuler</button><button type="submit" class="btn dark" id="fsave" style="flex:none">Ajouter</button></div>
+  </form>
+</div>
+<div id="welcome"><div class="wcard">
+  <div class="wlogo">Collage <i>de</i> Noël</div>
+  <p class="wmsg" id="wmsg"></p>
+  <div class="wlogin"><p>Fais la liste de Noël de ta famille en collage, partage-la et laisse tes proches réserver les cadeaux.</p>
+    <form id="loginform"><input type="email" id="lemail" placeholder="ton@email.fr" required autocomplete="email"><button class="btn dark">Recevoir un lien de connexion</button></form>
+    <small id="lsent">Pas de mot de passe : tu reçois un lien par mail.</small></div>
+  <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="Famille Dupont" required><button class="btn dark">Créer ma liste</button></form></div>
+  <button type="button" class="wclose" id="wclose">Fermer</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
