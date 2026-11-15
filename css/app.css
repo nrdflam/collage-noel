@@ -509,3 +509,8 @@
   .entry .nt::after{content:"”";color:var(--accent);font:700 17px/0 Georgia,serif;font-style:normal;margin-left:2px;vertical-align:-4px}
   body:not(.viewer) #favstar{display:none!important}
   body.viewer .dock .sep{display:none}
+  body.member #favstar{display:none!important}
+  /* objets réservés : très estompés, le tampon reste net */
+  .piece.reserved canvas{opacity:.22;filter:grayscale(.6);transition:opacity .3s}
+  .piece.reserved::after{opacity:1!important}
+  .entry.rsvd .nm{text-decoration:line-through;text-decoration-color:rgba(200,55,42,.5)}

@@ -167,7 +167,8 @@ async function unreserve(itemId){
   if(MODE==='cloud'){const {data}=await SB.rpc('cancel_reservation',{rid:m.id,sec:m.secret});if(!data)toast('Annulation impossible')}
   delete o[itemId];saveMyRes(o);S.res.delete(itemId);saveLocal();await loadRes();renderAll()}
 setInterval(()=>{if(MODE==='cloud'&&document.visibilityState==='visible'&&!EDIT)loadRes().then(()=>syncReserved())},25000);
-function syncReserved(){const show=S.res;pieces.forEach((el,k)=>el.classList.toggle('reserved',show.has(k)))}
+const resShown=id=>S.res.has(id)&&(MODE==='cloud'||!CAN_WRITE||(S.boards.get(activeBoard)?.reserve_mode==='visible'));
+function syncReserved(){pieces.forEach((el,k)=>el.classList.toggle('reserved',resShown(k)))}
 
 /* ---------- modes et familles ---------- */
 function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.classList.toggle('ro',!EDIT);b.classList.toggle('viewer',UI==='view');b.classList.toggle('stack',UI==='view'&&VIEW==='stack');
@@ -491,11 +492,11 @@ function renderList(sid){
   const box=spreads.get(sid).querySelector('.entries');const its=[...S.items].filter(([,v])=>v.sheet===sid&&(EDIT||!v.ph)).sort((a,b)=>(a[1].n||0)-(b[1].n||0));
   if(!its.length){box.innerHTML=`<div class="empty">${EDIT?'Glisse ou colle (⌘V) une image, ou utilise le bouton « Objet » en bas.':'Rien pour l’instant.'}</div>`;return}
   const enc=encodeURIComponent;box.innerHTML='';
-  its.forEach(([id,it])=>{const d=document.createElement('div');d.className='entry'+(isAct(id)?' act':'')+(openEntry===id?' open':'');d.dataset.id=id;
+  its.forEach(([id,it])=>{const d=document.createElement('div');d.className='entry'+(isAct(id)?' act':'')+(openEntry===id?' open':'')+(resShown(id)?' rsvd':'');d.dataset.id=id;
     const q=it.q||it.name||'';
     d.innerHTML=`<div class="r1"><span class="n"></span><span class="nm"></span></div><div class="det"><div>${(it.price||it.brand)?'<div class="pr"></div>':''}${it.color?'<div class="co"><i></i><span></span></div>':''}${it.note?'<div class="nt"></div>':''}<div class="lk"></div><div class="rsv"></div>${EDIT?`<button class="ed">${svg.edit} Modifier</button>`:''}</div></div>`;
     d.querySelector('.n').textContent=it.n||'';d.querySelector('.nm').textContent=it.name||'Sans nom';
-    if(S.res.has(id)){const t=document.createElement('span');t.className='rtag';t.textContent='Réservé';d.querySelector('.nm').appendChild(t)}
+    if(resShown(id)){const t=document.createElement('span');t.className='rtag';t.textContent='Réservé';d.querySelector('.nm').appendChild(t)}
     if(it.ph){const t=document.createElement('span');t.className='rtag ph';t.textContent='exemple';d.querySelector('.nm').appendChild(t)}
     rsvUI(id,d.querySelector('.rsv'));
     if(it.price||it.brand)d.querySelector('.pr').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
@@ -828,6 +829,8 @@ function famMenu(){BM.innerHTML='';
   if(fams.length>1||MODE==='cloud'){head('Mes familles');fams.forEach(([id,b])=>item(esc(b.name||'Sans nom'),()=>{closeMenus();if(MODE==='cloud')location.hash=id;else{location.hash=id;pickBoard();renderAll()}},id===activeBoard?'cur':''))}
   item('<b style="color:var(--accent)">+ Nouvelle famille</b>',()=>{closeMenus();MODE==='cloud'?createFamily('Nouvelle famille'):newBoard('Nouvelle famille')});
   const b=S.boards.get(activeBoard)||{};
+  if(CAN_WRITE&&EDIT&&MODE==='local'){head('Réservations');const vis=(b.reserve_mode||'hidden')==='visible';
+    item(`<span class="tg ${vis?'on':''}"></span>La famille voit les réservations`,()=>{store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});closeMenus();toast(vis?'Réservations cachées à la famille : surprise garantie':'Réservations visibles par la famille')})}
   if(MODE==='cloud'&&CAN_WRITE){head('Cette famille');
     item('Inviter quelqu’un à modifier',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
       const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}});
@@ -872,9 +875,9 @@ rf.onchange=async()=>{const f=rf.files[0];rf.value='';if(!f)return;
 /* =====================================================================
    Réservation (mode Aperçu)
    ===================================================================== */
-function rsvUI(id,box){box.innerHTML='';box.onclick=e=>e.stopPropagation();const r=S.res.get(id),mine=myRes()[id];
+function rsvUI(id,box){box.innerHTML='';box.onclick=e=>e.stopPropagation();const r=resShown(id)?S.res.get(id):null,mine=myRes()[id];
   if(r){const st=document.createElement('div');st.className='rs';
-    st.textContent=mine?'Tu as réservé ce cadeau':(r.name?'Réservé par '+r.name:'Déjà réservé');
+    st.textContent=(mine&&!CAN_WRITE)?'Tu as réservé ce cadeau':(r.name?'Réservé par '+r.name:'Déjà réservé');
     if(mine&&!EDIT){const b=document.createElement('button');b.textContent='Annuler';b.onclick=()=>unreserve(id);st.appendChild(b)}
     box.appendChild(st);return}
   if(EDIT||CAN_WRITE)return; // la famille ne réserve pas ses propres cadeaux
@@ -1071,7 +1074,7 @@ function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeB
   // garder le nom à jour
   if(fav){const b=S.boards.get(activeBoard),f=a.find(x=>x.id===activeBoard);if(b&&b.name&&f.name!==b.name){f.name=b.name;try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}}}
   const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
-  document.getElementById('favwrap').style.display=UI==='view'?'':'none';
+  document.getElementById('favwrap').style.display=(UI==='view'&&!CAN_WRITE)?'':'none';
   const h=document.getElementById('hfavs');h.innerHTML='';if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
     const w=document.createElement('div');w.className='hfw';a.forEach(f=>{const x=document.createElement('a');x.href=favUrl(f.id);x.textContent=f.name;x.onclick=()=>hideHome();w.appendChild(x)});h.appendChild(w)}}
 document.getElementById('favstar').onclick=()=>{if(activeBoard)toggleFav(activeBoard)};
