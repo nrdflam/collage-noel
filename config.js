@@ -1,6 +1,6 @@
-// Renseigne ici ton projet Supabase (Settings › API). Laisse vide pour le mode local (démo, rien n'est partagé).
-// La clé « anon / publishable » est faite pour être publique : la sécurité est assurée par supabase/schema.sql.
+// Connexion à Supabase (Settings › API Keys). Laisse vide pour le mode local (démo, rien n'est partagé).
+// La clé « publishable » est faite pour être publique : la sécurité est assurée par supabase/schema.sql.
 window.COLLAGE_CONFIG = {
-  supabaseUrl: '',
-  supabaseAnonKey: ''
+  supabaseUrl: 'https://gccpruwwvjwyemezmnbi.supabase.co',
+  supabaseAnonKey: 'sb_publishable_iaRzmQhuqPevOw2XvrlLmw_lwt0xiE8'
 };
