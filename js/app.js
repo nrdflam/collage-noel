@@ -622,8 +622,9 @@ function openForm(id,opt={}){
   if(opt.file)setPreview(opt.file);
   modal.classList.add('on');setTimeout(()=>document.getElementById(it||opt.url?'f_name':'f_url').focus(),50);
   if(opt.url)fillFromUrl(opt.url,!opt.file);
-  if(opt.prefill){const d=opt.prefill;document.getElementById('f_url').value=d.u||'';document.getElementById('f_name').value=(d.t||'').replace(/\s*[|\-–:]\s*(Amazon\.fr|Amazon|Fnac(\.com)?|Cdiscount|Decathlon|Zara Home|LEGO®? Shop).*$/i,'').slice(0,100);
-    document.getElementById('f_price').value=d.p||'';const sn=d.s&&!/\./.test(d.s)?d.s:shopName(d.u||'');document.getElementById('f_brand').value=sn;if(d.u)ensureLink(d.u,sn);
+  if(opt.prefill){const d=opt.prefill;document.getElementById('f_url').value=d.u||'';document.getElementById('f_name').value=tidy(d.t||'').replace(/\s*[|\-–:]\s*(Amazon\.fr|Amazon|Fnac(\.com)?|Cdiscount|Decathlon|Zara Home|LEGO®? Shop).*$/i,'').slice(0,100);
+    document.getElementById('f_price').value=d.p||'';const shop=shopName(d.u||''),hk=(()=>{try{return new URL(d.u).hostname.replace(/^www\./,'').split('.')[0]}catch(e){return ''}})();
+    const sn=d.s&&!/\./.test(d.s)&&d.s.toLowerCase().replace(/\s/g,'')!==hk?d.s:shop;document.getElementById('f_brand').value=sn;if(d.u)ensureLink(d.u,shop);
     const st=document.getElementById('f_urlst');if(d.i){st.className='busy';st.textContent='Je récupère l’image…';const my=F;fetchImage(d.i).then(f=>{if(F!==my)return;st.className='';if(f){setPreview(f);st.textContent='Rempli depuis la page. Vérifie et ajuste si besoin.'}else st.textContent='Image inaccessible : copie-la sur la page du produit et colle-la ici.'})}
     else st.textContent='Pas d’image trouvée : copie-la sur la page du produit et colle-la ici.'}
 }
@@ -921,6 +922,7 @@ AB.onclick=e=>{e.stopPropagation();if(!USER){showWelcome();return}const o=AM.cla
 const enc_=encodeURIComponent;
 const SHOPS={'amazon':'Amazon','fnac':'Fnac','lego':'LEGO','zarahome':'Zara Home','zara':'Zara','decathlon':'Decathlon','ikea':'IKEA','king-jouet':'King Jouet','cdiscount':'Cdiscount','etsy':'Etsy','natureetdecouvertes':'Nature & Découvertes','oxybul':'Oxybul','joueclub':'JouéClub','smythstoys':'Smyths Toys','laredoute':'La Redoute','vertbaudet':'Vertbaudet','galerieslafayette':'Galeries Lafayette','maisonsdumonde':'Maisons du Monde','hm':'H&M','uniqlo':'Uniqlo','boulanger':'Boulanger','darty':'Darty','cultura':'Cultura','leroymerlin':'Leroy Merlin','sephora':'Sephora','nocibe':'Nocibé','apple':'Apple','playmobil':'Playmobil','auchan':'Auchan','carrefour':'Carrefour','leclerc':'E.Leclerc','ebay':'eBay','vinted':'Vinted','leboncoin':'Leboncoin','djeco':'Djeco','petitbateau':'Petit Bateau','jacadi':'Jacadi','cyrillus':'Cyrillus','okaidi':'Okaïdi','kiabi':'Kiabi','monoprix':'Monoprix','printemps':'Printemps','bhv':'BHV','fnac-darty':'Fnac'};
 function shopName(u){try{const h=new URL(u).hostname.replace(/^www\.|^m\./,'');const k=h.split('.').slice(-2)[0];return SHOPS[k]||SHOPS[h.split('.')[0]]||(k.charAt(0).toUpperCase()+k.slice(1))}catch(e){return ''}}
+const tidy=t=>{t=(t||'').trim();return t&&t===t.toUpperCase()&&/[A-ZÀ-Ý]{4}/.test(t)?t.charAt(0)+t.slice(1).toLowerCase():t};
 function slugTitle(u){try{const parts=new URL(u).pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const cand=parts.filter(x=>/[a-z]/i.test(x)&&/[-_ ]/.test(x)&&!/^(dp|p|product|produit|fr|fr-fr|en|gp|mp|c\d*|w-\d+)$/i.test(x)).sort((a,b)=>b.length-a.length)[0]||'';
   let t=cand.replace(/\.(html?|php|aspx?)$/,'').replace(/[-_]+/g,' ').replace(/\b[a-z]?\d{5,}\b/gi,'').replace(/\s+/g,' ').trim();
@@ -947,7 +949,7 @@ async function fillFromUrl(u,forceImg){
   if(d.partial&&!d.image){const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};set('f_name',d.title);set('f_brand',d.site);ensureLink(u,d.site);
     st.className='';st.innerHTML='Ce site bloque la lecture automatique : j’ai mis le nom et la boutique d’après l’adresse. Pour tout remplir (image, prix), utilise le bouton <b>+ Collage</b> depuis la page du produit, ou colle l’image ici.';return}
   const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};
-  const title=(d.title||'').replace(/\s+/g,' ').slice(0,90);set('f_name',title);
+  const title=tidy((d.title||'').replace(/\s+/g,' ')).slice(0,90);set('f_name',title);
   const site=(d.site&&!/\./.test(d.site)?d.site:shopName(d.url||u))||hostOf(u);set('f_price',d.price);set('f_brand',site);
   ensureLink(d.url||u,site);
   if(d.image&&(forceImg||!F.file)){st.textContent='Je récupère l’image…';const f=await fetchImage(d.image);if(F!==my)return;if(f)setPreview(f)}
