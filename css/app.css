@@ -573,3 +573,11 @@
   #cutcv{display:block;border-radius:10px;cursor:crosshair;touch-action:none;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;max-width:100%}
   .cutact{display:flex;gap:8px;align-items:center}.cutact .btn{flex:none}.cutact .sp{flex:1}
   #cutok:disabled{opacity:.4;cursor:not-allowed}
+
+/* aperçu du contour de découpe */
+.dz .pv{position:relative;display:inline-block;line-height:0}
+.dz .pv img{max-width:100%;max-height:220px;display:block;border-radius:6px}
+.dz .pv svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.dz .pv svg path{fill:none;stroke:#fff;stroke-width:4;stroke-linejoin:round;paint-order:stroke;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.55))}
+.dz .pv em{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);line-height:1.2;font-style:normal;font-size:12px;background:rgba(20,16,12,.75);color:#fff;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.dz .pv em[hidden]{display:none}

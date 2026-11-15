@@ -608,7 +608,14 @@ const modal=document.getElementById('modal'),form=document.getElementById('form'
 let F=null; // {id, sheet, x, y, file, preview}
 function linkRow(l={}){const r=document.createElement('div');r.className='l';r.innerHTML='<input placeholder="Magasin"><input placeholder="https://…"><button type="button" class="x" title="Retirer">×</button>';
   r.children[0].value=l.label||'';r.children[1].value=l.url||'';r.children[2].onclick=()=>r.remove();document.getElementById('f_links').appendChild(r)}
-function setPreview(file){F.file=file;F.polyN=undefined;syncCutBtn();const u=URL.createObjectURL(file);dz.innerHTML='';const i=new Image();i.src=u;dz.appendChild(i)}
+function setPreview(file){F.file=file;F.polyN=undefined;F.auto=null;syncCutBtn();const u=URL.createObjectURL(file);dz.innerHTML='<span class="pv"><img src="'+u+'"><svg preserveAspectRatio="none"></svg><em hidden>Je repère l’objet…</em></span>';
+  const my=F,em=dz.querySelector('em');
+  F.autoP=autoContour(file,b=>{if(F===my)em.hidden=!b});
+  Promise.all([F.autoP,createImageBitmap(file)]).then(([P,b])=>{if(F!==my||!P)return;const s=Math.min(1,1100/Math.max(b.width,b.height));my.auto={P,W:Math.round(b.width*s),H:Math.round(b.height*s)};showContour()}).catch(()=>{})}
+/* aperçu du contour sur l'image du formulaire */
+function showContour(){const sv=dz.querySelector('.pv svg');if(!sv||!F)return;let P,W,H;
+  if(F.polyN){P=F.polyN;W=1;H=1}else if(F.auto){({P,W,H}=F.auto)}else{sv.innerHTML='';return}
+  sv.setAttribute('viewBox','0 0 '+W+' '+H);sv.innerHTML='<path d="M'+P.map(p=>p[0]+','+p[1]).join('L')+'Z" vector-effect="non-scaling-stroke"/>'}
 function openForm(id,opt={}){
   if(!EDIT)return;
   const it=id?S.items.get(id):null;F={id,sheet:it?it.sheet:(opt.sheet||activeSheet),x:opt.x,y:opt.y,file:null};
@@ -653,43 +660,83 @@ document.getElementById('fdel').onclick=()=>{if(F?.id){const sid=S.items.get(F.i
 form.addEventListener('keydown',e=>{if(e.key==='Escape')closeForm();e.stopPropagation()});
 
 function hasAlpha(g,W,H){const d=g.getImageData(0,0,W,H).data;for(let i=3;i<d.length;i+=4*97)if(d[i]<200)return true;return false}
-/* Fond uni (photo de boutique sur blanc/gris) : on le repère depuis les bords et on le rend transparent,
-   pour que la découpe suive l'objet. Si le fond est une vraie scène, on ne touche à rien. */
-function removeFlatBackground(c,W,H){
+/* Détourage : on ne supprime jamais le fond, on cherche le contour de l'objet pour que les ciseaux passent au plus près.
+   1) fond uni (photo de boutique) : remplissage depuis les bords ; 2) photo « in situ » : segmentation (SlimSAM, dans le navigateur). */
+function closeMask(fg,w,h,R){ // fermeture morphologique : rebouche les morsures étroites
+  const dt=(src,val)=>{const D=new Float32Array(w*h);for(let i=0;i<D.length;i++)D[i]=src[i]===val?0:1e9;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;let v=D[i];if(x>0)v=Math.min(v,D[i-1]+1);if(y>0){v=Math.min(v,D[i-w]+1);if(x>0)v=Math.min(v,D[i-w-1]+1.414);if(x<w-1)v=Math.min(v,D[i-w+1]+1.414)}D[i]=v}
+    for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;let v=D[i];if(x<w-1)v=Math.min(v,D[i+1]+1);if(y<h-1){v=Math.min(v,D[i+w]+1);if(x<w-1)v=Math.min(v,D[i+w+1]+1.414);if(x>0)v=Math.min(v,D[i+w-1]+1.414)}D[i]=v}return D};
+  const d1=dt(fg,1),dil=new Uint8Array(w*h);for(let i=0;i<dil.length;i++)dil[i]=d1[i]<=R?1:0;
+  const d2=dt(dil,0),out=new Uint8Array(w*h);for(let i=0;i<out.length;i++)out[i]=(fg[i]||d2[i]>R)?1:0;return out}
+function flatBgMask(c,W,H){
   const k=Math.min(1,260/Math.max(W,H)),w=Math.max(8,Math.round(W*k)),h=Math.max(8,Math.round(H*k));
   const a=document.createElement('canvas');a.width=w;a.height=h;const ag=a.getContext('2d',{willReadFrequently:true});ag.drawImage(c,0,0,w,h);const d=ag.getImageData(0,0,w,h).data;
   const border=[];for(let x=0;x<w;x++){border.push(x,(h-1)*w+x)}for(let y=1;y<h-1;y++){border.push(y*w,y*w+w-1)}
   const med=ch=>{const v=border.map(p=>d[p*4+ch]).sort((x,y)=>x-y);return v[v.length>>1]};const br=med(0),bg=med(1),bb=med(2);
   const dist=p=>Math.hypot(d[p*4]-br,d[p*4+1]-bg,d[p*4+2]-bb);
-  if(border.filter(p=>dist(p)<26).length/border.length<.6)return false; // bords pas uniformes : vraie photo
-  // remplissage depuis les bords, tolérance serrée (sinon il se faufile dans les zones claires de l'objet)
+  if(border.filter(p=>dist(p)<26).length/border.length<.6)return null; // bords pas uniformes : vraie photo
   const bgm=new Uint8Array(w*h),st=[];border.forEach(p=>{if(dist(p)<30&&!bgm[p]){bgm[p]=1;st.push(p)}});
   while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;
     for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,y>0?p-w:-1,y<h-1?p+w:-1]){if(q<0||bgm[q])continue;if(dist(q)<30){bgm[q]=1;st.push(q)}}}
-  // lissage : on rebouche les « morsures » étroites dans l'objet (fermeture morphologique)
-  {const R=Math.max(3,Math.round(Math.max(w,h)*.04)),fg=new Uint8Array(w*h);for(let i=0;i<fg.length;i++)fg[i]=bgm[i]?0:1;
-   const dt=(src,val)=>{const D=new Float32Array(w*h);for(let i=0;i<D.length;i++)D[i]=src[i]===val?0:1e9;
-     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;let v=D[i];if(x>0)v=Math.min(v,D[i-1]+1);if(y>0){v=Math.min(v,D[i-w]+1);if(x>0)v=Math.min(v,D[i-w-1]+1.414);if(x<w-1)v=Math.min(v,D[i-w+1]+1.414)}D[i]=v}
-     for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;let v=D[i];if(x<w-1)v=Math.min(v,D[i+1]+1);if(y<h-1){v=Math.min(v,D[i+w]+1);if(x<w-1)v=Math.min(v,D[i+w+1]+1.414);if(x>0)v=Math.min(v,D[i+w-1]+1.414)}D[i]=v}return D};
-   const d1=dt(fg,1),dil=new Uint8Array(w*h);for(let i=0;i<dil.length;i++)dil[i]=d1[i]<=R?1:0;
-   const d2=dt(dil,0);for(let i=0;i<bgm.length;i++)if(d2[i]>R)bgm[i]=0}
-  let n=0;for(let i=0;i<bgm.length;i++)n+=bgm[i];const fg=1-n/bgm.length;
-  if(fg<.05||fg>.9)return false;
-  // masque (objet opaque, légèrement épaissi) appliqué à l'image en pleine taille
-  const m=ag.createImageData(w,h);for(let i=0;i<bgm.length;i++){let on=!bgm[i];if(!on){const x=i%w,y=(i/w)|0;on=(x>0&&!bgm[i-1])||(x<w-1&&!bgm[i+1])||(y>0&&!bgm[i-w])||(y<h-1&&!bgm[i+w])}m.data[i*4+3]=on?255:0}
-  const mc=document.createElement('canvas');mc.width=w;mc.height=h;mc.getContext('2d').putImageData(m,0,0);
-  const g=c.getContext('2d');g.save();g.globalCompositeOperation='destination-in';g.imageSmoothingEnabled=true;g.filter='blur('+Math.max(1,1/k*.6)+'px)';g.drawImage(mc,0,0,W,H);g.restore();
-  return true}
-async function prepImage(file){
+  const fg=new Uint8Array(w*h);let n=0;for(let i=0;i<fg.length;i++){fg[i]=bgm[i]?0:1;n+=fg[i]}
+  if(n/fg.length<.05||n/fg.length>.9)return null;let e=0;border.forEach(p=>e+=fg[p]);return{fg,w,h,edge:e/border.length}}
+/* masque -> contour (pixels de l'image W×H) : plus grande tache (ou celle sous le point), trous bouchés, bord tracé puis simplifié */
+function maskPoly(fg,w,h,W,H,at){
+  const lab=new Int32Array(w*h).fill(-1),sizes=[];
+  for(let i=0;i<fg.length;i++){if(!fg[i]||lab[i]>=0)continue;const L=sizes.length;let n=0;const st=[i];lab[i]=L;
+    while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;n++;for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,y>0?p-w:-1,y<h-1?p+w:-1])if(q>=0&&fg[q]&&lab[q]<0){lab[q]=L;st.push(q)}}sizes.push(n)}
+  if(!sizes.length)return null;let keep=sizes.indexOf(Math.max(...sizes));
+  if(at){const p=Math.min(h-1,Math.max(0,Math.round(at[1]*h)))*w+Math.min(w-1,Math.max(0,Math.round(at[0]*w)));if(lab[p]>=0&&sizes[lab[p]]>sizes[keep]*.15)keep=lab[p]}
+  let m=new Uint8Array(w*h);for(let i=0;i<m.length;i++)m[i]=lab[i]===keep?1:0;
+  m=closeMask(m,w,h,Math.max(2,Math.round(Math.max(w,h)*.03)));
+  // trous : ce qui n'est pas relié au bord devient objet
+  const out=new Uint8Array(w*h),st=[];const push=p=>{if(!m[p]&&!out[p]){out[p]=1;st.push(p)}};
+  for(let x=0;x<w;x++){push(x);push((h-1)*w+x)}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+  while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;if(x>0)push(p-1);if(x<w-1)push(p+1);if(y>0)push(p-w);if(y<h-1)push(p+w)}
+  const A=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&!out[y*w+x];
+  let s=-1;for(let i=0;i<out.length;i++)if(!out[i]){s=i;break}if(s<0)return null;
+  const D=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];let x=s%w,y=(s/w)|0;const sx=x,sy=y,pts=[[x,y]];let dir=0,g=0;
+  do{let ok=false;for(let k=0;k<8;k++){const nd=(dir+6+k)%8,nx=x+D[nd][0],ny=y+D[nd][1];if(A(nx,ny)){x=nx;y=ny;dir=nd;ok=true;break}}
+    if(!ok)break;pts.push([x,y])}while(!(x===sx&&y===sy)&&g++<w*h*4);
+  if(pts.length<8)return null;const sxk=W/w,syk=H/h;
+  const P=simplifyLoop(pts.map(([x,y])=>[(x+.5)*sxk,(y+.5)*syk]),Math.max(sxk,syk)*1.1);
+  return P.length>2?P:null}
+/* SlimSAM (≈15 Mo, chargé seulement si besoin, puis gardé en cache par le navigateur) */
+let SAMP=null;const samEmb=new WeakMap();
+function samLoad(){if(!SAMP)SAMP=(async()=>{const T=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');const id='Xenova/slimsam-77-uniform';
+  const [model,proc]=await Promise.all([T.SamModel.from_pretrained(id,{dtype:'q8'}),T.AutoProcessor.from_pretrained(id)]);return{T,model,proc}})().catch(e=>{SAMP=null;throw e});return SAMP}
+async function samMask(src,pt,clicked){ // src : canvas / image ; pt normalisé ; renvoie {fg,w,h} réduit
+  const {T,model,proc}=await samLoad();let E=samEmb.get(src);
+  if(!E){const iw=src.naturalWidth||src.width,ih=src.naturalHeight||src.height,k=Math.min(1,1024/Math.max(iw,ih)),c=document.createElement('canvas');c.width=Math.round(iw*k);c.height=Math.round(ih*k);c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+    const inp=await proc(T.RawImage.fromCanvas(c));E={inp,emb:await model.get_image_embeddings(inp)};samEmb.set(src,E)}
+  const rs=E.inp.reshaped_input_sizes[0];
+  const input_points=new T.Tensor('float32',[pt[0]*rs[1],pt[1]*rs[0]],[1,1,1,2]),input_labels=new T.Tensor('int64',new BigInt64Array([1n]),[1,1,1]);
+  const {pred_masks,iou_scores}=await model({...E.emb,input_points,input_labels});
+  const M=(await proc.post_process_masks(pred_masks,E.inp.original_sizes,E.inp.reshaped_input_sizes))[0],[,,H,W]=M.dims,data=M.data,sc=iou_scores.data;
+  const k=Math.min(1,240/Math.max(W,H)),w=Math.max(8,Math.round(W*k)),h=Math.max(8,Math.round(H*k));
+  let best=null;for(let j=0;j<3;j++){const fg=new Uint8Array(w*h);let n=0,edge=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const v=data[j*W*H+Math.min(H-1,Math.floor((y+.5)/k))*W+Math.min(W-1,Math.floor((x+.5)/k))]?1:0;fg[y*w+x]=v;n+=v;if(v&&(x===0||y===0||x===w-1||y===h-1))edge++}
+    const area=n/(w*h),edges=edge/(2*(w+h));if(area<.02||area>(clicked?.92:.75)||(!clicked&&edges>.18))continue;
+    const score=sc[j]+(clicked?0:area*.15);if(!best||score>best.score)best={fg,w,h,score}}
+  return best}
+/* contour automatique d'un fichier (sans toucher aux pixels) */
+async function autoContour(file,onStatus){
+  const bmp=await createImageBitmap(file),s=Math.min(1,1100/Math.max(bmp.width,bmp.height)),W=Math.round(bmp.width*s),H=Math.round(bmp.height*s);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(bmp,0,0,W,H);
+  if(hasAlpha(g,W,H))return null;const f=flatBgMask(c,W,H),flatP=()=>f?maskPoly(f.fg,f.w,f.h,W,H):null;
+  if(f&&f.edge<.06)return flatP(); // objet entier sur fond uni : simple et sûr
+  // sinon (photo in situ, objet porté, coupé par le cadre…) : on cherche l'objet au centre
+  try{onStatus&&onStatus(true);const m=await samMask(c,[.5,.5],false);return (m&&maskPoly(m.fg,m.w,m.h,W,H,[.5,.5]))||flatP()}catch(e){console.warn('sam',e);return flatP()}finally{onStatus&&onStatus(false)}}
+async function prepImage(file,autoP){
   const bmp=await createImageBitmap(file);const max=1100,s=Math.min(1,max/Math.max(bmp.width,bmp.height));
   const W=Math.round(bmp.width*s),H=Math.round(bmp.height*s),c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(bmp,0,0,W,H);
-  if(!hasAlpha(g,W,H))removeFlatBackground(c,W,H);
   const d=g.getImageData(0,0,W,H).data;let transp=0,pts=[];const step=Math.max(2,Math.round(Math.max(W,H)/220));
   for(let y=0;y<H;y+=step)for(let x=0;x<W;x+=step){const a=d[(y*W+x)*4+3];if(a<20)transp++;else pts.push([x,y])}
   const total=Math.ceil(H/step)*Math.ceil(W/step);const alpha=transp/total>.04&&pts.length>10;
+  let poly=alpha?hull(pts):null;if(!alpha){try{poly=await(autoP||autoContour(file))}catch(e){poly=null}}
   const type=alpha?'image/webp':'image/jpeg';
   let blob=await new Promise(r=>c.toBlob(r,type,.86));if(!blob)blob=await new Promise(r=>c.toBlob(r,'image/png'));
-  return {blob,W,H,alpha,poly:alpha?hull(pts):null,dataURL:MODE==='cloud'?null:c.toDataURL(type,.8)};
+  return {blob,W,H,alpha,poly:poly?poly.map(([x,y])=>[Math.round(x),Math.round(y)]):null,dataURL:MODE==='cloud'?null:c.toDataURL(type,.8)};
 }
 form.addEventListener('submit',async e=>{
   e.preventDefault();if(!F)return;const err=document.getElementById('ferr');err.textContent='';
@@ -701,7 +748,7 @@ form.addEventListener('submit',async e=>{
   const btn=document.getElementById('fsave');btn.disabled=true;btn.textContent='…';
   try{
     if(F.file){
-      const p=await prepImage(F.file);
+      const p=await prepImage(F.file,F.autoP);
       if(MODE==='cloud'){const path=famOf(F.sheet)+'/'+uid()+(p.blob.type==='image/webp'?'.webp':'.jpg');const up=await SB.storage.from('images').upload(path,p.blob,{contentType:p.blob.type,cacheControl:'31536000'});if(up.error)throw new Error('Envoi de l’image impossible : '+up.error.message);data.src=SB.storage.from('images').getPublicUrl(path).data.publicUrl}
       else data.src=p.dataURL;
       data.alpha=p.alpha;data.poly=p.poly;
@@ -1175,16 +1222,22 @@ function syncCutBtn(){const b=document.getElementById('cutbtn');if(!b)return;con
 async function cutterImage(){if(F.file)return await createImageBitmap(F.file);const it=S.items.get(F.id);return await loadImg(it.src)}
 document.getElementById('cutbtn').onclick=async()=>{if(!F)return;let im;try{im=await cutterImage()}catch(e){toast('Image indisponible');return}
   const iw=im.width||im.naturalWidth,ih=im.height||im.naturalHeight,maxW=Math.min(innerWidth-80,760),maxH=innerHeight-230,k=Math.min(maxW/iw,maxH/ih);
-  CV.width=Math.round(iw*k);CV.height=Math.round(ih*k);CUTS={im,pts:(F.polyN||[]).map(([x,y])=>[x*CV.width,y*CV.height]),drawing:false,closed:!!(F.polyN&&F.polyN.length)};
+  CV.width=Math.round(iw*k);CV.height=Math.round(ih*k);const it0=!F.file&&F.id&&S.items.get(F.id),ip=it0&&!it0.alpha&&it0.poly&&im.naturalWidth?it0.poly.map(([x,y])=>[x/im.naturalWidth,y/im.naturalHeight]):null;
+  const init=F.polyN?F.polyN.map(([x,y])=>[x*CV.width,y*CV.height]):F.auto?F.auto.P.map(([x,y])=>[x/F.auto.W*CV.width,y/F.auto.H*CV.height]):ip?ip.map(([x,y])=>[x*CV.width,y*CV.height]):[];CUTS={im,pts:init,drawing:false,closed:init.length>2};
   CUT.classList.add('on');drawCut()};
 function drawCut(){const {im,pts,closed}=CUTS,W=CV.width,H=CV.height;CG.clearRect(0,0,W,H);CG.drawImage(im,0,0,W,H);
   if(pts.length>2&&closed){CG.save();CG.fillStyle='rgba(30,25,20,.55)';CG.beginPath();CG.rect(0,0,W,H);pts.forEach((p,i)=>i?CG.lineTo(p[0],p[1]):CG.moveTo(p[0],p[1]));CG.closePath();CG.fill('evenodd');CG.restore()}
   if(pts.length>1){CG.save();CG.lineWidth=2.5;CG.strokeStyle='#e5533d';CG.setLineDash(closed?[]:[6,5]);CG.lineJoin='round';CG.beginPath();pts.forEach((p,i)=>i?CG.lineTo(p[0],p[1]):CG.moveTo(p[0],p[1]));if(closed)CG.closePath();CG.stroke();CG.restore()}
-  document.getElementById('cutok').disabled=!(closed&&pts.length>2);document.getElementById('cuthint').textContent=closed?'Parfait. Recommence en traçant à nouveau, ou valide.':'Maintiens le clic et fais le tour de l’objet, en largeur. Relâche pour fermer.'}
+  document.getElementById('cutok').disabled=!(closed&&pts.length>2);document.getElementById('cuthint').textContent=CUTS.busy?'Je repère l’objet… (la 1re fois prend quelques secondes)':closed?'Pas bon ? Clique sur l’objet, ou fais-en le tour à la souris.':'Clique sur l’objet pour le détourer, ou fais-en le tour à la souris.'}
 const cpos=e=>{const r=CV.getBoundingClientRect();return[(e.clientX-r.left)*CV.width/r.width,(e.clientY-r.top)*CV.height/r.height]};
 CV.addEventListener('pointerdown',e=>{e.preventDefault();CV.setPointerCapture(e.pointerId);CUTS.pts=[cpos(e)];CUTS.closed=false;CUTS.drawing=true;drawCut()});
 CV.addEventListener('pointermove',e=>{if(!CUTS?.drawing)return;const p=cpos(e),l=CUTS.pts[CUTS.pts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>3){CUTS.pts.push(p);drawCut()}});
-CV.addEventListener('pointerup',()=>{if(!CUTS?.drawing)return;CUTS.drawing=false;if(CUTS.pts.length>8){CUTS.pts=simplifyLoop(CUTS.pts,2.2);CUTS.closed=CUTS.pts.length>2}else CUTS.pts=[];drawCut()});
+CV.addEventListener('pointerup',e=>{if(!CUTS?.drawing)return;CUTS.drawing=false;if(CUTS.pts.length>8){CUTS.pts=simplifyLoop(CUTS.pts,2.2);CUTS.closed=CUTS.pts.length>2;drawCut();return}
+  // simple clic : on détoure l'objet touché
+  const p=cpos(e),my=CUTS;CUTS.pts=[];CUTS.busy=true;drawCut();CG.save();CG.fillStyle='#e5533d';CG.beginPath();CG.arc(p[0],p[1],7,0,7);CG.fill();CG.restore();
+  samMask(CUTS.im,[p[0]/CV.width,p[1]/CV.height],true).then(m=>{if(CUTS!==my)return;my.busy=false;const P=m&&maskPoly(m.fg,m.w,m.h,CV.width,CV.height,[p[0]/CV.width,p[1]/CV.height]);
+    if(P){my.pts=P;my.closed=true}else toast('Objet introuvable ici : fais-en le tour à la souris');drawCut()})
+   .catch(err=>{console.warn(err);if(CUTS!==my)return;my.busy=false;drawCut();toast('Détourage indisponible : fais le tour à la souris')})});
 function simplify(pts,eps){if(pts.length<3)return pts;const d=(p,a,b)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return Math.abs((b[0]-a[0])*(a[1]-p[1])-(a[0]-p[0])*(b[1]-a[1]))/L};
   let mx=0,ix=0;for(let i=1;i<pts.length-1;i++){const v=d(pts[i],pts[0],pts[pts.length-1]);if(v>mx){mx=v;ix=i}}
   return mx>eps?[...simplify(pts.slice(0,ix+1),eps).slice(0,-1),...simplify(pts.slice(ix),eps)]:[pts[0],pts[pts.length-1]]}
@@ -1192,8 +1245,8 @@ function simplifyLoop(pts,eps){let k=0,far=0;pts.forEach((p,i)=>{const d=Math.hy
   const A=simplify(pts.slice(0,k+1),eps),B=simplify([...pts.slice(k),pts[0]],eps);return [...A.slice(0,-1),...B.slice(0,-1)]}
 function closeCut(){CUT.classList.remove('on');CUTS=null}
 document.getElementById('cutcancel').onclick=closeCut;
-document.getElementById('cutauto').onclick=()=>{if(F)F.polyN=null;syncCutBtn();closeCut();toast('Découpe automatique')};
-document.getElementById('cutok').onclick=()=>{if(!F||!CUTS)return;F.polyN=CUTS.pts.map(([x,y])=>[+(x/CV.width).toFixed(4),+(y/CV.height).toFixed(4)]);syncCutBtn();closeCut();toast('Contour enregistré : il sera appliqué en validant la fiche')};
+document.getElementById('cutauto').onclick=()=>{if(F)F.polyN=null;syncCutBtn();showContour();closeCut();toast('Découpe automatique')};
+document.getElementById('cutok').onclick=()=>{if(!F||!CUTS)return;F.polyN=CUTS.pts.map(([x,y])=>[+(x/CV.width).toFixed(4),+(y/CV.height).toFixed(4)]);syncCutBtn();showContour();closeCut();toast('Contour enregistré : il sera appliqué en validant la fiche')};
 CUT.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeCut()});
 
 boot();
