@@ -471,3 +471,34 @@
   .cpick span{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#e2393b,#f6c62a,#2e9e5b,#2f62d8,#7b4bc4,#e2393b);box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);pointer-events:none}
   .cpick.set span{background:var(--pc,#888)}
   .cpick.set{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink);border-radius:50%}
+
+  /* ---------- liste : plus d'air, notes distinctes, recherches sous l'achat ---------- */
+  .entry{padding:9px 10px}
+  .entries .entry+.entry{margin-top:3px}
+  .entry.open{margin:8px 0;padding:12px 12px 10px}
+  .entry .det>div{padding-top:2px}
+  .entry .pr{margin-top:5px}
+  .entry .co{margin-top:5px}
+  .entry .nt{font:400 13.5px/1.35 'Caveat','Gloria Hallelujah',cursive;font-size:16px;color:#5a4a1f;background:#fff4c7;border-radius:3px 10px 10px 10px;padding:6px 10px 7px;margin-top:9px;box-shadow:0 1px 2px rgba(80,60,0,.1);transform:rotate(-.6deg);position:relative}
+  .entry .nt::before{content:"";position:absolute;left:12px;top:-5px;width:26px;height:9px;background:rgba(255,255,255,.65);transform:rotate(-4deg);box-shadow:0 0 1px rgba(0,0,0,.08)}
+  .entry .lk{margin:11px 0 6px}
+  .entry .lk .br{flex-basis:100%;height:0}
+  .entry .ed{margin-top:4px}
+  /* ---------- couleurs : une seule rangée ---------- */
+  #f_colors{flex-wrap:nowrap;gap:5px}
+  #f_colors .sw{width:22px;height:22px;flex:none}
+  .lab .cname{font-weight:400;color:var(--muted)}
+  .lab .cname:not(:empty)::before{content:"· "}
+  #f_cclear{border:0;background:none;color:var(--muted);font-size:17px;cursor:pointer;padding:0 4px;visibility:hidden}
+  #f_cclear:hover{color:var(--ink)}
+
+  /* ---------- Aperçu : partager et favori en haut à droite ---------- */
+  #topright>.wrap-rel>#sharebtn,#topright>#favstar{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px);border-radius:999px;padding:8px 14px;font:500 12.5px Inter;cursor:pointer;box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:6px}
+  #topright>.wrap-rel>#sharebtn{color:var(--accent)}
+  #topright>.wrap-rel>#sharebtn svg{width:16px;height:16px}
+  #topright>.wrap-rel>#sharebtn:hover,#topright>#favstar:hover{background:#fff}
+  #topright #favstar{color:var(--ink)}
+  #topright #favstar.on{color:#b07800}
+  #topright #sharemenu{left:auto;right:0;transform:none;top:calc(100% + 8px)}
+  body.viewer .dock .sep.view-only{display:none}
+  body.stack .dock{display:none}

@@ -171,9 +171,12 @@ function syncReserved(){const show=S.res;pieces.forEach((el,k)=>el.classList.tog
 /* ---------- modes et familles ---------- */
 function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.classList.toggle('ro',!EDIT);b.classList.toggle('viewer',UI==='view');b.classList.toggle('stack',UI==='view'&&VIEW==='stack');
   b.classList.toggle('member',CAN_WRITE);
+  {const sw=document.getElementById('sharebtn').parentNode,tr=document.getElementById('topright'),dock=document.querySelector('.dock'),fs=document.getElementById('favstar'),sm=document.getElementById('sharemenu');
+   if(UI==='view'){if(sw.parentNode!==tr){tr.insertBefore(sw,document.getElementById('modes'))}if(fs.parentNode!==tr)tr.insertBefore(fs,tr.firstChild);sm.classList.remove('up')}
+   else{if(sw.parentNode!==dock){dock.appendChild(sw)}sm.classList.add('up')}}
   const m=document.getElementById('modes');m.classList.toggle('show',CAN_WRITE);m.querySelectorAll('button').forEach(x=>x.classList.toggle('cur',x.dataset.m===UI));
   if(!EDIT){setSel([]);dev.classList.remove('on')}syncBrand()}
-function setUI(u){UI=u;VIEW=u==='view'?'stack':'open';try{localStorage.setItem('collage-ui',u)}catch(e){}recomputeEdit();renderAll()}
+function setUI(u){closeMenus();UI=u;VIEW=u==='view'?'stack':'open';try{localStorage.setItem('collage-ui',u)}catch(e){}recomputeEdit();renderAll()}
 const firstBoard=()=>[...S.boards].sort((a,b)=>(a[1].order||0)-(b[1].order||0))[0]?.[0]||null;
 function pickBoard(){const h=hashFam();const want=S.boards.has(h)?h:(S.boards.has(activeBoard)?activeBoard:firstBoard());
   if(want!==activeBoard){activeBoard=want;activeSheet=null}syncBrand()}
@@ -498,7 +501,7 @@ function renderList(sid){
     if(it.color){const co=d.querySelector('.co');co.querySelector('span').textContent=it.color.n;const dot=co.querySelector('i');if(it.color.h)dot.style.background=it.color.h;else dot.classList.add('any')}if(it.note)d.querySelector('.nt').textContent=it.note;
     const lk=d.querySelector('.lk');
     (it.links||[]).forEach(l=>{if(!/^https?:\/\//i.test(l.url||''))return;const a=document.createElement('a');a.className='buy';a.href=l.url;a.target='_blank';a.rel='noopener';a.innerHTML=svg.cart+'<span></span>';a.querySelector('span').textContent=l.label||hostOf(l.url);lk.appendChild(a)});
-    if(q){[['Google','https://www.google.com/search?q='],['Leboncoin','https://www.leboncoin.fr/recherche?text=']].forEach(([l,u])=>{const a=document.createElement('a');a.className='s';a.href=u+enc(q);a.target='_blank';a.rel='noopener';a.title='Rechercher « '+q+' » sur '+l;a.innerHTML=svg.loupe+'<span>'+l+'</span>';lk.appendChild(a)})}
+    if(q){if(lk.children.length){const br=document.createElement('span');br.className='br';lk.appendChild(br)}[['Google','https://www.google.com/search?q='],['Leboncoin','https://www.leboncoin.fr/recherche?text=']].forEach(([l,u])=>{const a=document.createElement('a');a.className='s';a.href=u+enc(q);a.target='_blank';a.rel='noopener';a.title='Rechercher « '+q+' » sur '+l;a.innerHTML=svg.loupe+'<span>'+l+'</span>';lk.appendChild(a)})}
     d.addEventListener('mouseenter',()=>hover(id,true));d.addEventListener('mouseleave',()=>hover(id,false));
     d.addEventListener('click',e=>{if(e.target.closest('a,.ed,.rsv'))return;setOpen(openEntry===id?null:id)});
     const ed=d.querySelector('.ed');if(ed)ed.onclick=()=>openForm(id);
@@ -938,15 +941,18 @@ function ensureLink(url,label){const rows=[...document.querySelectorAll('#f_link
   r.children[0].value=r.children[0].value||label||'';r.children[1].value=url}
 const COLORS=[['Rouge','#e2393b'],['Rose','#f48fb1'],['Orange','#f57c2b'],['Jaune','#f6c62a'],['Vert','#2e9e5b'],['Bleu','#2f62d8'],['Violet','#7b4bc4'],['Marron','#8b5a3c'],['Gris','#9a9a9a'],['Noir','#222222'],['Blanc','#ffffff']];
 const FC=document.getElementById('f_colors'),FCO=document.getElementById('f_color_other');
-FC.innerHTML=COLORS.map(([n,h])=>`<button type="button" class="sw" data-n="${n}" data-h="${h}" title="${n}" style="--c:${h}"></button>`).join('')+'<span class="cname" id="f_cname"></span>';
+FC.innerHTML=COLORS.map(([n,h])=>`<button type="button" class="sw" data-n="${n}" data-h="${h}" title="${n}" style="--c:${h}"></button>`).join('')+'';
 function setColor(c){if(F)F.color=c;FC.querySelectorAll('.sw').forEach(b=>b.classList.toggle('cur',!!c&&b.dataset.n===c.n));
   const known=c&&COLORS.some(x=>x[0]===c.n),fcp=document.getElementById('f_color_pick');FCO.value=c&&!known&&c.n!=='Couleur perso'?c.n:'';document.getElementById('f_cname').textContent=known?c.n:'';
-  if(c&&!known&&c.h){fcp.value=c.h;fcp.dataset.set='1';fcp.parentNode.classList.add('set');fcp.parentNode.style.setProperty('--pc',c.h)}else{delete fcp.dataset.set;fcp.value='#888888';fcp.parentNode.classList.remove('set')}}
+  if(c&&!known&&c.h){fcp.value=c.h;fcp.dataset.set='1';fcp.parentNode.classList.add('set');fcp.parentNode.style.setProperty('--pc',c.h)}else{delete fcp.dataset.set;fcp.value='#888888';fcp.parentNode.classList.remove('set')}syncCClear()}
 FC.onclick=e=>{const b=e.target.closest('.sw');if(!b)return;setColor(F?.color?.n===b.dataset.n?null:{n:b.dataset.n,h:b.dataset.h})};
 const FCP=document.getElementById('f_color_pick');
 function customColor(){const v=FCO.value.trim(),h=FCP.dataset.set?FCP.value:null;if(F)F.color=(v||h)?{n:v||'Couleur perso',h}:null;
-  FC.querySelectorAll('.sw').forEach(b=>b.classList.remove('cur'));document.getElementById('f_cname').textContent='';FCP.parentNode.classList.toggle('set',!!h);if(h)FCP.parentNode.style.setProperty('--pc',h)}
+  FC.querySelectorAll('.sw').forEach(b=>b.classList.remove('cur'));document.getElementById('f_cname').textContent='';FCP.parentNode.classList.toggle('set',!!h);if(h)FCP.parentNode.style.setProperty('--pc',h);syncCClear()}
 FCO.addEventListener('input',customColor);
+document.getElementById('f_cclear').onclick=()=>{FCO.value='';delete FCP.dataset.set;FCP.value='#888888';if(F)F.color=null;FCP.parentNode.classList.remove('set');syncCClear()};
+function syncCClear(){document.getElementById('f_cclear').style.visibility=(FCO.value.trim()||FCP.dataset.set)?'visible':'hidden'}
+FCO.addEventListener('input',syncCClear);FCP.addEventListener('input',syncCClear);
 FCP.addEventListener('input',()=>{FCP.dataset.set='1';customColor()});
 document.getElementById('f_fetch').onclick=()=>fillFromUrl(document.getElementById('f_url').value,true);
 document.getElementById('f_url').addEventListener('paste',e=>{const t=e.clipboardData?.getData('text/plain')||'';if(/^\s*https?:\/\/\S+\s*$/.test(t)){e.preventDefault();e.stopPropagation();fillFromUrl(t,true)}});
