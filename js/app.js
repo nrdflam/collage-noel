@@ -272,26 +272,41 @@ function phImage(k){if(phCache[k])return phCache[k];const d=parsePH(k),c=documen
   return phCache[k]=c.toDataURL('image/png')}
 function randomStickers(n,seed){const R=rng(seed),sh=STK_SHAPES.slice().sort(()=>R()-.5),cs=Object.keys(STK_COLORS).sort(()=>R()-.5);
   return Array.from({length:n},(_,i)=>`ph-${sh[i%sh.length]}-${cs[i%cs.length]}-${Math.floor(R()*900)}`)}
-const PH_NAMES=['Exemple : un livre','Exemple : un jeu','Exemple : un vêtement','Exemple : une sortie','Exemple : une surprise','Exemple : un doudou','Exemple : une gourmandise'];
+const PH_NAMES=['Exemple : un livre','Exemple : un jeu','Exemple : un vêtement','Exemple : une sortie','Exemple : une surprise','Exemple : un doudou','Exemple : une gourmandise','Exemple : un atelier','Exemple : une plante'];
 /* taille visuelle d'un sticker (demi-largeur / demi-hauteur, en % de la largeur de feuille) */
 function stkBox(key,w){const P=phPoly(key);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
   const m=S.cfg.margin*2;return{rw:(x1-x0+m)/STK_W*w/2,rh:(y1-y0+m)/STK_W*w/2}}
-/* tas de stickers serrés, sans grille : chacun vient se coller aux précédents */
-function packStickers(keys,widths,zone,A,seed){const R=rng(seed);
-  const it=keys.map((k,i)=>({k,w:widths[i],...stkBox(k,widths[i])})).sort((a,b)=>b.w-a.w),out=[];
-  const cx=(zone.x0+zone.x1)/2,cy=(zone.y0+zone.y1)/2*A;
-  for(const o of it){let best=null;
-    for(let t=0;t<900;t++){const x=zone.x0+o.rw+R()*Math.max(0,zone.x1-zone.x0-2*o.rw),y=(zone.y0*A+o.rh)+R()*Math.max(0,(zone.y1-zone.y0)*A-2*o.rh);
-      let ok=true,near=1e9;
-      for(const p of out){const d=Math.hypot((x-p.x)/(o.rw+p.rw),(y-p.y)/(o.rh+p.rh));if(d<.84){ok=false;break}near=Math.min(near,d)}
-      if(!ok)continue;const sc=(out.length?Math.abs(near-.88)*3:0)+Math.hypot((x-cx)/50,(y-cy)/50)*.18+R()*.12;
-      if(!best||sc<best.sc)best={x,y,sc}}
-    if(!best)best={x:cx+(R()-.5)*30,y:cy+(R()-.5)*30};out.push({...o,x:best.x,y:best.y})}
-  return out.map(o=>({k:o.k,w:o.w,x:o.x,y:o.y/A}))}
-function addPlaceholders(sid){const n=7,keys=randomStickers(n,Date.now()%100000),R=rng(Date.now()%9973);
-  const widths=keys.map((k,i)=>[86,76,70,64,58,52,46][i]*(.9+R()*.2));
-  packStickers(keys,widths,{x0:4,x1:96,y0:19,y1:97},297/210,Date.now()%7919)
-    .forEach((o,i)=>store.setItem('i'+uid(),{sheet:sid,ph:true,n:i+1,name:PH_NAMES[i%PH_NAMES.length],price:'',note:'Remplace-moi avec « Modifier », ou supprime-moi.',links:[],q:'',src:'builtin:'+o.k,x:o.x,y:o.y,w:o.w,a:Math.round(R()*24-12),z:i+1,seed:4000+i*131},true));renderAll()}
+/* ---------- remplissage « carré » sans chevauchement, façon planche de stickers ----------
+   On rastérise chaque sticker (forme + liseré + petit espace), on le pose au premier endroit libre
+   en balayant la zone, du plus grand au plus petit. On essaie d'abord en grand, et on réduit
+   jusqu'à ce que tout trouve sa place. Enfin, le bloc obtenu est recentré dans la zone. */
+function stickerCells(key,w,a,res,stroke){const P=phPoly(key);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
+  const k=w/STK_W*res,N=Math.ceil(Math.hypot(x1-x0,y1-y0)*k+stroke*k+6),c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+  g.translate(N/2,N/2);g.rotate(a*Math.PI/180);g.scale(k,k);g.translate(-(x0+x1)/2,-(y0+y1)/2);
+  g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();if(stroke>0){g.lineJoin='round';g.lineWidth=stroke;g.stroke()}
+  const d=g.getImageData(0,0,N,N).data,out=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(d[(y*N+x)*4+3]>60)out.push(x-(N>>1),y-(N>>1));return out}
+function packSquare(keys,widths,zone,A,seed,opt={}){
+  const res=opt.res||1.7,mg=opt.margin??S.cfg.margin,gap=opt.gap??14,GW=Math.round((zone.x1-zone.x0)*res),GH=Math.round((zone.y1-zone.y0)*A*res);
+  const order=keys.map((k,i)=>({k,w:widths[i],i})).sort((a,b)=>b.w-a.w);
+  const tryScale=(sc,sd)=>{const R=rng(sd),occ=new Uint8Array(GW*GH),out=[];
+    for(const o of order){const w=o.w*sc,a=opt.rot===false?0:Math.round(R()*20-10);
+      const test=stickerCells(o.k,w,a,res,2*mg+gap),mark=stickerCells(o.k,w,a,res,2*mg);
+      let mx=0,my=0;for(let i=0;i<test.length;i+=2){mx=Math.max(mx,Math.abs(test[i]));my=Math.max(my,Math.abs(test[i+1]))}
+      if(2*mx>=GW||2*my>=GH)return null;
+      const cands=[];for(let y=my;y<GH-my;y+=2)for(let x=mx;x<GW-mx;x+=2)cands.push([x,y,y+x*.35+R()*7]);cands.sort((p,q)=>p[2]-q[2]);
+      let hit=null;for(const [x,y] of cands){let ok=true;for(let i=0;i<test.length;i+=2){if(occ[(y+test[i+1])*GW+x+test[i]]){ok=false;break}}if(ok){hit=[x,y];break}}
+      if(!hit)return null;for(let i=0;i<mark.length;i+=2)occ[(hit[1]+mark[i+1])*GW+hit[0]+mark[i]]=1;out.push({...o,w,a,gx:hit[0],gy:hit[1]})}
+    // recentrer le bloc
+    let bx0=GW,by0=GH,bx1=0,by1=0;for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)if(occ[y*GW+x]){bx0=Math.min(bx0,x);bx1=Math.max(bx1,x);by0=Math.min(by0,y);by1=Math.max(by1,y)}
+    const sx=(GW-1-bx1-bx0)/2,sy=(GH-1-by1-by0)/2;let filled=0;for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++)filled+=occ[y*GW+x];
+    const fill=filled/((bx1-bx0+1)*(by1-by0+1)),r=out.map(o=>({k:o.k,i:o.i,w:o.w,a:o.a,x:zone.x0+(o.gx+sx)/res,y:zone.y0+(o.gy+sy)/res/A}));r.fill=fill;return r};
+  // à la plus grande taille possible, garder le tirage le plus « carré » (bloc le mieux rempli)
+  for(let sc=opt.start||1.35;sc>.3;sc*=.93){let best=null;for(let t=0;t<(opt.tries||5);t++){const r=tryScale(sc,seed+t*7919);if(r&&(!best||r.fill>best.fill))best=r}if(best)return best.sort((a,b)=>a.i-b.i)}
+  return []}
+function addPlaceholders(sid){const n=9,keys=randomStickers(n,Date.now()%100000),R=rng(Date.now()%9973);
+  const widths=keys.map((k,i)=>[62,54,50,46,42,38,34,30,26][i]*(.9+R()*.2));
+  packSquare(keys,widths,{x0:6,x1:94,y0:21,y1:96},297/210,Date.now()%7919)
+    .forEach((o,i)=>store.setItem('i'+uid(),{sheet:sid,ph:true,n:i+1,name:PH_NAMES[i%PH_NAMES.length],price:'',note:'Remplace-moi avec « Modifier », ou supprime-moi.',links:[],q:'',src:'builtin:'+o.k,x:o.x,y:o.y,w:o.w,a:o.a,z:i+1,seed:4000+i*131},true));renderAll()}
 function loadImg(src){if(!imgCache.has(src))imgCache.set(src,new Promise((res,rej)=>{const i=new Image();if(/^https?:/.test(srcURL(src)))i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=srcURL(src)}));return imgCache.get(src)}
 function itemPoly(it,im){
   if(it.src.startsWith('builtin:ph'))return phPoly(it.src.slice(8));
@@ -951,31 +966,31 @@ document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const 
   if(error){m.className='err';m.textContent='Erreur : '+error.message}else m.textContent='C’est envoyé ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
 HOME.querySelector('.hdemo').onclick=e=>{if(MODE==='cloud'){e.preventDefault();toast('L’exemple arrive bientôt')}};
 // stickers découpés (sans passer par les objets de la page)
-function stickerInto(c,im,P){const m=S.cfg.margin,pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
+function stickerInto(c,im,P,flat){const m=flat?0:S.cfg.margin,pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
   const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
   const path=()=>{g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath()};
-  g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.lineJoin='round';g.lineWidth=m*2;g.strokeStyle='#fff';g.fillStyle='#fff';path();g.fill();g.stroke();g.restore();
+  if(!flat){g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.lineJoin='round';g.lineWidth=m*2;g.strokeStyle='#fff';g.fillStyle='#fff';path();g.fill();g.stroke();g.restore()}
   g.drawImage(im,pad-x0,pad-y0);
   const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
   return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
-async function drawSticker(c,key,seed){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key)).scale}
-function placeSticker(parent,key,x,y,w,a,seed){const c=document.createElement('canvas');c.style.left=x+'%';c.style.top=y+'%';parent.appendChild(c);
-  drawSticker(c,key,seed).then(sc=>{c.style.width=(w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${a}deg)`}).catch(()=>c.remove())}
+async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat).scale}
+function placeSticker(parent,key,x,y,w,a,flat){const c=document.createElement('canvas');c.style.left=x+'%';c.style.top=y+'%';parent.appendChild(c);
+  drawSticker(c,key,flat).then(sc=>{c.style.width=(w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${a}deg)`}).catch(()=>c.remove())}
 function buildHome(){
   // quelques stickers autour du titre
   const st=HOME.querySelector('.hstk');
   [['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
-    .forEach(([k,x,y,w,a],i)=>placeSticker(st,k,x,y,w,a,300+i*17));
+    .forEach(([k,x,y,w,a],i)=>placeSticker(st,k,x,y,w,a,false));
+  // listes d'exemple : pas de titre, juste des planches de stickers, chacune dans son style
   const EX=[
-    {side:'hl',dx:-104,dy:-50,r:-7,title:'La liste de Lou',font:'Caveat',fs:1.15,paper:'quad',st:[['blob-rose',28,32],['etoile-jaune',72,30],['arche-vert',30,62],['goutte-bleu',70,64],['nuage-lilas',50,50],['cacahuete-orange',50,86]]},
-    {side:'hl',dx:-38,dy:-44,r:4,title:'Mamie Jo',font:'Fraunces',fs:1,paper:'lines',st:[['coussin-menthe',30,34],['fleur-violet',70,38],['demi-orange',34,70],['vague-rouge',68,74],['eclat-jaune',50,50]]},
-    {side:'hr',dx:-62,dy:-52,r:6,title:'Les envies de Sacha',font:'Permanent Marker',fs:.85,paper:'dots',st:[['eclat-rouge',30,36],['galet-jaune',70,34],['trefle-lilas',32,68],['blob-bleu',70,70],['cacahuete-menthe',50,50]]},
-    {side:'hr',dx:4,dy:-46,r:-5,title:'Papa (vraiment)',font:'Instrument Serif',fs:1.1,paper:'kraft',st:[['etoile-vert',30,34],['coussin-rose',70,36],['fleur-orange',32,70],['goutte-violet',70,68],['vague-bleu',50,50]]}];
+    {side:'hl',dx:-104,dy:-50,r:-7,paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},  // planche dense, comme une feuille de stickers
+    {side:'hl',dx:-38,dy:-44,r:4,paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},           // quelques gros stickers
+    {side:'hr',dx:-62,dy:-52,r:6,paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},          // aplats sans liseré
+    {side:'hr',dx:4,dy:-46,r:-5,paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}];         // sur kraft
   EX.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';
     d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';
-    d.innerHTML=`<div class="paper p-${e.paper}"></div><div class="ruling r-${e.paper}" style="--deco:.4"></div><h2></h2>`;
-    const h=d.querySelector('h2');h.textContent=e.title;h.style.fontFamily=`'${e.font}'`;h.style.fontSize=(8*e.fs)+'cqw';
-    host.appendChild(d);const keys=e.st.map(([k],j)=>'ph-'+k+'-'+(i*7+j*13)),R=rng(77+i*13);
-    packStickers(keys,keys.map((_,j)=>[84,74,68,62,56,50][j]*(.9+R()*.2)),{x0:3,x1:97,y0:16,y1:97},297/210,900+i*37)
-      .forEach(o=>placeSticker(d,o.k,o.x,o.y,o.w,Math.round(R()*26-13),0))})}
+    d.innerHTML=`<div class="paper p-${e.paper}"></div><div class="ruling r-${e.paper}" style="--deco:.4"></div>`;host.appendChild(d);
+    const R=rng(e.seed),keys=randomStickers(e.n,e.seed*101),widths=keys.map((_,j)=>e.sizes[j%e.sizes.length]*(.85+R()*.3));
+    packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
+      .forEach(o=>placeSticker(d,o.k,o.x,o.y,o.w,o.a,e.flat))})}
 boot();
