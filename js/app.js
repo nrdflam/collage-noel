@@ -189,7 +189,7 @@ addEventListener('hashchange',()=>{const h=hashFam();if(MODE==='cloud'){if(h&&h!
 function syncBrand(){const f=document.querySelector('#brand .fam'),s=document.querySelector('#brand .fsub');if(!f)return;const b=S.boards.get(activeBoard);
   if(document.activeElement!==f)f.textContent=b?.name||'';f.contentEditable=EDIT?'true':'false';
   if(s){if(document.activeElement!==s)s.textContent=b?.subtitle??'Listes de Noël';s.contentEditable=EDIT?'true':'false'}
-  document.title=(b?.name?b.name+' · ':'')+'Listes de Noël';renderFavs()}
+  document.title=(b?.name?b.name+' · ':'')+'PaperWish';renderFavs()}
 function setStatus(t,live){const s=document.getElementById('status');s.querySelector('span').textContent=t;s.classList.toggle('live',live)}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
 
@@ -922,7 +922,7 @@ function famMenu(){BM.innerHTML='';
   if(MODE==='cloud'&&CAN_WRITE){head('Partage');
     item('Inviter quelqu’un à modifier cette liste',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
       const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}})}
-  if(EDIT){head('Ajouter plus vite');item('✨ Bouton « Ma liste de Noël » pour ton navigateur',()=>{closeMenus();openInstall()})}
+  if(EDIT){head('Ajouter plus vite');item('✨ Bouton « PaperWish » pour ton navigateur',()=>{closeMenus();openInstall()})}
   if(HEDIT&&activeBoard==='accueil'){head('Accueil');
     item('<b style="color:var(--accent)">Voir l’accueil avec ces pages</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
     item('Copier pour Claude',()=>{closeMenus();copyAccueil()});

@@ -1,4 +1,4 @@
-# Collage de Noël
+# PaperWish
 
 Les listes de Noël de la famille, en collage : des images découpées aux ciseaux sur une feuille de papier, à partager avec les proches qui peuvent réserver les cadeaux.
 

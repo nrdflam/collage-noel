@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🎁%3C/text%3E%3C/svg%3E">
-<title>Collage de Noël</title>
+<title>PaperWish · listes d’envies en collage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=202611160005">
+<link rel="stylesheet" href="css/app.css?v=202611160007">
 <style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
@@ -103,9 +103,9 @@
   </form>
 </div>
 <div id="welcome" hidden-until-css><div class="wcard">
-  <div class="wlogo">Collage <i>de</i> Noël</div>
+  <div class="wlogo">Paper<i>Wish</i></div>
   <p class="wmsg" id="wmsg"></p>
-  <div class="wlogin"><p>Fais la liste de Noël de ta famille en collage, partage-la et laisse tes proches réserver les cadeaux.</p>
+  <div class="wlogin"><p>Découpe tes envies, colle-les sur ta feuille, partage-la : tes proches réservent les cadeaux.</p>
     <form id="loginform"><input type="email" id="lemail" placeholder="ton@email.fr" required autocomplete="email"><button class="btn dark">Recevoir un lien de connexion</button></form>
     <small id="lsent">Pas de mot de passe : tu reçois un lien par mail.</small></div>
   <div class="wcreate"><p>Comment s’appelle ta liste ?</p><form id="createform"><input id="cname" placeholder="ex. Famille Martin" required><button class="btn dark">Créer ma liste</button></form></div>
@@ -121,8 +121,8 @@
   <div class="hside hl"></div><div class="hside hr"></div>
   <div class="hsheet"><div class="paper p-uni"></div><div class="ruling r-uni"></div><div class="hstk"></div>
     <div class="hcontent">
-      <h1 class="htitle">Collage <i>de</i> Noël</h1>
-      <p class="hlead">La liste de Noël de toute la famille, découpée et collée sur une feuille de papier. Tu ajoutes tes envies en collant un lien, tes proches les voient et réservent le cadeau en un clic.</p>
+      <h1 class="htitle">Paper<i>Wish</i></h1>
+      <p class="hlead">Tes envies découpées aux ciseaux et collées sur papier. Colle un lien, l’objet se découpe tout seul, tes proches réservent en un clic. Pour Noël, un anniversaire ou une naissance.</p>
       <div class="hauth">
         <div class="htabs"><button type="button" data-t="new" class="cur">Créer une liste</button><button type="button" data-t="login">Se connecter</button></div>
         <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta liste, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
@@ -140,10 +140,10 @@
     <div class="bmbar"><i></i><i></i><i></i><span class="bmurl">boutique.fr/jouet-en-bois</span></div>
     <div class="bmfavs"><span class="bmfav">Actus</span><span class="bmfav">Recettes</span><span class="bmslot">dépose ici</span></div>
     <svg class="bmarrow" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 52C18 30 30 18 48 12"/><path d="M36 10l12 2-4 11"/></svg>
-    <a class="bmlink bmpill" href="#" draggable="true">🎁 Ma liste de Noël</a>
+    <a class="bmlink bmpill" href="#" draggable="true">🎁 PaperWish</a>
     <div class="bmhint">Glisse ce bouton vers ta barre de favoris</div>
   </div>
-  <ol class="bmsteps"><li><b>Glisse</b> le bouton rouge dans ta barre de favoris.<small>Tu ne la vois pas ? <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> (ou <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>B</kbd>)</small></li><li><b>Sur une page produit</b>, clique sur « 🎁 Ma liste de Noël ».</li><li><b>C’est rempli</b> : nom, prix, image, lien. Tu valides, c’est collé.</li></ol>
+  <ol class="bmsteps"><li><b>Glisse</b> le bouton rouge dans ta barre de favoris.<small>Tu ne la vois pas ? <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> (ou <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>B</kbd>)</small></li><li><b>Sur une page produit</b>, clique sur « 🎁 PaperWish ».</li><li><b>C’est rempli</b> : nom, prix, image, lien. Tu valides, c’est collé.</li></ol>
   <button type="button" class="btn dark bmok">C’est fait</button>
 </div></div>
 <div id="cutter" hidden-until-css><div class="cutcard">
@@ -153,8 +153,8 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=202611160005"></script>
+<script src="config.js?v=202611160007"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js?v=202611160005"></script>
+<script src="js/app.js?v=202611160007"></script>
 </body>
 </html>
