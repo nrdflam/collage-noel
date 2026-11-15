@@ -32,6 +32,9 @@
   <button id="additem" class="primary edit-only" data-tip="Ajouter un objet · ou colle une image (⌘V)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Objet</span>
   </button>
+  <button id="addlinkbtn" class="edit-only" data-tip="Ajouter depuis un lien produit (ou colle un lien sur la page : ⌘V)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Lien</span>
+  </button>
   <div class="sep edit-only"></div>
   <button id="selall" class="edit-only" data-tip="Tout sélectionner · ⌘A">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h2M11 3h2M17 3a2 2 0 0 1 2 2M3 7v2M3 13v2M3 5a2 2 0 0 1 2-2M5 19a2 2 0 0 1-2-2M9 19h2M19 9v2"/><path d="M13 13l8 3-3.5 1.5L16 21z" fill="currentColor"/></svg>
@@ -41,10 +44,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
   </button>
   <div class="sep edit-only"></div>
-  <div class="wrap-rel edit-only"><button id="paperbtn" data-tip="Papier de la feuille">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></button><div class="menu up" id="papermenu"></div></div>
-  <div class="wrap-rel edit-only"><button id="fontbtn" data-tip="Police du titre">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9.5 5h1L16 19M6.3 14h7.4M17 10.5c.7-.6 1.6-1 2.5-1 1.5 0 2.5.9 2.5 2.5V19M22 15.5c-.8-.6-1.7-.8-2.7-.8-1.5 0-2.8.8-2.8 2.2s1.1 2.1 2.5 2.1c1.3 0 2.4-.8 3-2"/></svg></button><div class="menu up fontmenu" id="fontmenu"></div></div>
+  <div class="wrap-rel edit-only"><button id="setbtn" data-tip="Paramètres de la feuille">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+    <div class="menu up setmenu" id="setmenu"><div class="setcol"><div class="mh">Papier</div><div id="papermenu"></div></div><div class="setcol"><div class="mh">Police du titre</div><div id="fontmenu"></div></div></div></div>
   <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer la feuille">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
     <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette feuille et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
@@ -82,13 +84,14 @@
       <input type="file" id="file" accept="image/*" hidden>
     </div>
     <div class="fields">
-      <label>Lien du produit<span class="urlrow"><input id="f_url" placeholder="Colle le lien de la page du produit" inputmode="url"><button type="button" class="btn" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label>
+      <div class="urlbox"><label><span class="lab">Remplir depuis un lien <span class="info" tabindex="0">i<span class="tip">Colle l’adresse de la page du produit (Amazon, Fnac, une petite boutique…) : le nom, la marque, le prix et l’image se remplissent tout seuls. Tu peux tout corriger ensuite. Certains sites bloquent la lecture : dans ce cas, remplis à la main.</span></span></span><span class="urlrow"><input id="f_url" placeholder="https://… la page du produit" inputmode="url"><button type="button" class="btn dark" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label></div>
       <label>Nom<input id="f_name" required placeholder="Nom de l’objet"></label>
-      <label>Prix, magasin, référence<input id="f_price" placeholder="Prix · magasin"></label>
-      <label>Petite note<textarea id="f_note" rows="2" placeholder="Taille, couleur, une précision…"></textarea></label>
-      <div class="links"><div style="font-weight:500;font-size:12px;color:#55504a;margin-bottom:4px">Liens</div><div id="f_links"></div>
+      <div class="row2"><label>Prix<input id="f_price" placeholder="29,99 €" inputmode="decimal"></label><label>Marque<input id="f_brand" placeholder="Marque ou magasin"></label></div>
+      <div class="colors"><div class="lab">Couleur <span class="info" tabindex="0">i<span class="tip">Si l’objet existe en plusieurs couleurs, choisis celle que tu préfères. Elle s’affiche à côté du nom pour tes proches. Clique à nouveau pour enlever.</span></span></div><div id="f_colors"></div><input id="f_color_other" placeholder="Autre couleur : tape son nom (ex. vert sapin)"></div>
+      <label>Petite note<textarea id="f_note" rows="2" placeholder="Taille, âge, version, une précision…"></textarea></label>
+      <div class="links"><div class="lab">Où l’acheter <span class="info" tabindex="0">i<span class="tip">Les boutiques où on trouve l’objet. Tes proches verront un bouton par lien, qui ouvre directement la page.</span></span></div><div id="f_links"></div>
         <button type="button" class="addlink" id="addlink">+ Ajouter un lien</button></div>
-      <label>Recherche pré-remplie<input id="f_q" placeholder="Par défaut : le nom"></label>
+      <label><span class="lab">Recherche pré-remplie <span class="info" tabindex="0">i<span class="tip">Tes proches verront deux boutons, « Google Shopping » et « Leboncoin », qui lancent directement une recherche avec ces mots (pour comparer les prix ou trouver d’occasion). Par défaut, c’est le nom de l’objet. Mets des mots plus précis si besoin, ex. « Lego 43292 ».</span></span></span><input id="f_q" placeholder="Par défaut : le nom"></label>
     </div>
     <div class="actions"><span class="err" id="ferr"></span><button type="button" class="btn danger" id="fdel" style="flex:none">Supprimer</button><span class="sp"></span>
       <button type="button" class="btn" id="fcancel" style="flex:none">Annuler</button><button type="submit" class="btn dark" id="fsave" style="flex:none">Ajouter</button></div>

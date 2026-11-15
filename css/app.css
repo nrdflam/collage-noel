@@ -404,3 +404,33 @@
   .hside .ex img{position:absolute;inset:0;width:100%;height:100%;display:block;filter:url(#deckle) drop-shadow(0 1px 1px rgba(60,40,20,.22)) drop-shadow(0 12px 22px rgba(60,40,20,.16))}
   #hbar.ed{top:68px;bottom:auto;left:auto;right:16px;transform:none;max-width:280px;align-items:stretch;text-align:left}
   #hbar.ed div{justify-content:flex-start}
+
+  /* ---------- paramètres de la feuille ---------- */
+  .menu.setmenu{display:none;grid-template-columns:230px 200px;gap:4px;padding:6px;min-width:0}
+  .menu.setmenu.open{display:grid}
+  .setmenu .setcol{min-width:0}
+  .setmenu #papermenu button,.setmenu #fontmenu button{width:100%}
+  .setmenu .deco{margin-top:2px}
+  .setmenu #fontmenu button{font-size:16px;padding:6px 10px}
+  .setmenu #fontmenu button[data-outline]{font:13px Inter}
+
+  /* ---------- fiche objet ---------- */
+  .urlbox{background:#fbf3ef;border:1px solid rgba(229,83,61,.25);border-radius:12px;padding:10px 10px 8px}
+  .urlbox label{color:#7a3a2c!important}
+  .row2{display:grid;grid-template-columns:1fr 1.3fr;gap:8px}
+  .lab{font-weight:500;font-size:12px;color:#55504a;display:inline-flex;align-items:center;gap:6px;margin-bottom:4px}
+  .colors{display:flex;flex-direction:column}
+  #f_colors{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+  #f_colors .sw{width:24px;height:24px;border-radius:50%;border:0;background:var(--c);cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);transition:transform .15s;padding:0}
+  #f_colors .sw:hover{transform:scale(1.12)}
+  #f_colors .sw.cur{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),0 0 0 2px #fff,0 0 0 4px var(--ink)}
+  #f_colors .cname{font-size:12px;color:var(--muted);margin-left:4px}
+  #f_color_other{font-size:12.5px!important;padding:6px 10px!important}
+  .info{position:relative;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,.08);color:#55504a;font:700 10px/1 Georgia,serif;font-style:italic;cursor:help;flex:none;outline:none}
+  .info:hover,.info:focus{background:var(--ink);color:#fff}
+  .info .tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:250px;background:var(--ink);color:#fff;font:400 12px/1.45 Inter;font-style:normal;text-align:left;padding:9px 11px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .15s;z-index:5}
+  .info:hover .tip,.info:focus .tip{opacity:1}
+  .fields label .info{margin-left:4px}
+  .entry .co{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-top:3px}
+  .entry .co i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+  .entry .co i.any{background:conic-gradient(#e2393b,#f6c62a,#2e9e5b,#2f62d8,#7b4bc4,#e2393b)}

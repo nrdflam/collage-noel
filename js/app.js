@@ -239,6 +239,8 @@ function srcURL(src){if(src.startsWith('builtin:ph'))return phImage(src.slice(8)
 const STK_COLORS={rose:'#f585b6',bleu:'#1f55e0',orange:'#f8692c',jaune:'#f6c62a',vert:'#13a65e',violet:'#5c2ac2',lilas:'#a99af0',rouge:'#ee2c3c',menthe:'#6dd8b4'};
 const STK_SHAPES=['blob','fleur','eclat','etoile','arche','vague','trefle','galet','coussin','cacahuete','goutte','nuage','demi'];
 const STK_W=640,STK_H=480;
+const LIS=1.1,GAPS=.8; // épaisseur du liseré et espace entre stickers, en % de la largeur de la feuille (identique partout)
+const lisPx=(imgW,w)=>LIS*imgW/Math.max(4,w); // liseré en pixels de l'image pour un objet de largeur w (%)
 function stkPoly(shape,seed){const R=rng(seed),cx=STK_W/2,cy=STK_H/2,pts=[],N=160;
   const q1=R()*6,q2=R()*6,wob=t=>1+.035*Math.sin(2*t+q1)+.025*Math.sin(3*t+q2);
   const polar=f=>{for(let i=0;i<N;i++){const t=i/N*Math.PI*2,r=f(t)*wob(t);pts.push([cx+Math.cos(t)*r,cy+Math.sin(t)*r*.92])}return pts};
@@ -280,7 +282,7 @@ function randomStickers(n,seed){const R=rng(seed),sh=STK_SHAPES.slice().sort(()=
 const PH_NAMES=['Exemple : un livre','Exemple : un jeu','Exemple : un vêtement','Exemple : une sortie','Exemple : une surprise','Exemple : un doudou','Exemple : une gourmandise','Exemple : un atelier','Exemple : une plante'];
 /* taille visuelle d'un sticker (demi-largeur / demi-hauteur, en % de la largeur de feuille) */
 function stkBox(key,w){const P=phPoly(key);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
-  const m=S.cfg.margin*2;return{rw:(x1-x0+m)/STK_W*w/2,rh:(y1-y0+m)/STK_W*w/2}}
+  const m=2*lisPx(STK_W,w);return{rw:(x1-x0+m)/STK_W*w/2,rh:(y1-y0+m)/STK_W*w/2}}
 /* ---------- remplissage « carré » sans chevauchement, façon planche de stickers ----------
    On rastérise chaque sticker (forme + liseré + petit espace), on le pose au premier endroit libre
    en balayant la zone, du plus grand au plus petit. On essaie d'abord en grand, et on réduit
@@ -291,11 +293,11 @@ function stickerCells(key,w,a,res,stroke){const P=phPoly(key);let x0=1e9,y0=1e9,
   g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();if(stroke>0){g.lineJoin='round';g.lineWidth=stroke;g.stroke()}
   const d=g.getImageData(0,0,N,N).data,out=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(d[(y*N+x)*4+3]>60)out.push(x-(N>>1),y-(N>>1));return out}
 function packSquare(keys,widths,zone,A,seed,opt={}){
-  const res=opt.res||1.7,mg=opt.margin??S.cfg.margin,gap=opt.gap??14,GW=Math.round((zone.x1-zone.x0)*res),GH=Math.round((zone.y1-zone.y0)*A*res);
+  const res=opt.res||1.7,flat=opt.flat,GW=Math.round((zone.x1-zone.x0)*res),GH=Math.round((zone.y1-zone.y0)*A*res);
   const order=keys.map((k,i)=>({k,w:widths[i],i})).sort((a,b)=>b.w-a.w);
   const tryScale=(sc,sd)=>{const R=rng(sd),occ=new Uint8Array(GW*GH),out=[];
     for(const o of order){const w=o.w*sc,a=opt.rot===false?0:Math.round(R()*20-10);
-      const test=stickerCells(o.k,w,a,res,2*mg+gap),mark=stickerCells(o.k,w,a,res,2*mg);
+      const mg=flat?0:lisPx(STK_W,w),gap=GAPS*(opt.gapK||1)*STK_W/w,test=stickerCells(o.k,w,a,res,2*mg+gap),mark=stickerCells(o.k,w,a,res,2*mg);
       let mx=0,my=0;for(let i=0;i<test.length;i+=2){mx=Math.max(mx,Math.abs(test[i]));my=Math.max(my,Math.abs(test[i+1]))}
       if(2*mx>=GW||2*my>=GH)return null;
       const cands=[];for(let y=my;y<GH-my;y+=2)for(let x=mx;x<GW-mx;x+=2)cands.push([x,y,y+x*.35+R()*7]);cands.sort((p,q)=>p[2]-q[2]);
@@ -321,19 +323,19 @@ let DEBUG=false;
 async function drawPiece(id,el,force){
   const it=S.items.get(id);if(!it)return;
   const OUT=!it.ph&&!it.src.startsWith('builtin:ph')&&!!S.sheets.get(it.sheet)?.outline;
-  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG,OUT].join('|');if(!force&&el._key===key)return;el._key=key;
+  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG,OUT,(OUT||it.src.startsWith('builtin:ph'))?Math.round(it.w*4):0].join('|');if(!force&&el._key===key)return;el._key=key;
   let im;try{im=await loadImg(it.src)}catch(e){return}
   const W=im.naturalWidth,H=im.naturalHeight,P=itemPoly(it,im);
-  if(OUT){const r=outlineInto(el.querySelector('canvas'),im,P,!!it.alpha);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
-  if(it.src.startsWith('builtin:ph')){const r=stickerInto(el.querySelector('canvas'),im,P);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
+  if(it.src.startsWith('builtin:ph')){const r=stickerInto(el.querySelector('canvas'),im,P,false,it.w);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
   const M=getMask(it.src,im,P,!!it.alpha,S.cfg.margin);
   const V=cutPath(P,M,W,H,it.seed||1);
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;V.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
-  const pad=Math.ceil(S.cfg.shadow*2.5+4);x0=Math.floor(x0);y0=Math.floor(y0);x1=Math.ceil(x1);y1=Math.ceil(y1);
+  const LM=OUT?lisPx(W,it.w):0,pad=Math.ceil(S.cfg.shadow*2.5+4+LM);x0=Math.floor(x0);y0=Math.floor(y0);x1=Math.ceil(x1);y1=Math.ceil(y1);
   const cw=x1-x0+pad*2,ch=y1-y0+pad*2,c=el.querySelector('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d'),R=rng((it.seed||1)+7);
   const path=()=>{g.beginPath();V.forEach((p,i)=>{const X=p[0]-x0+pad,Y=p[1]-y0+pad;if(!i){g.moveTo(X,Y);return}
     const q=V[i-1],QX=q[0]-x0+pad,QY=q[1]-y0+pad,L=Math.hypot(X-QX,Y-QY)||1,b=(R()-.5)*2*S.cfg.bow;g.quadraticCurveTo((X+QX)/2+(Y-QY)/L*b,(Y+QY)/2-(X-QX)/L*b,X,Y)});g.closePath()};
-  if(S.cfg.shadow>0){g.save();g.shadowColor='rgba(40,25,10,.36)';g.shadowBlur=S.cfg.shadow;g.shadowOffsetX=S.cfg.shadow*.25;g.shadowOffsetY=S.cfg.shadow*.45;path();g.fillStyle='#fff';g.fill();g.restore()}
+  if(S.cfg.shadow>0||OUT){g.save();g.shadowColor='rgba(40,25,10,.36)';g.shadowBlur=Math.max(2,S.cfg.shadow);g.shadowOffsetX=S.cfg.shadow*.25;g.shadowOffsetY=S.cfg.shadow*.45;path();g.fillStyle='#fff';g.fill();
+    if(OUT){g.lineJoin='round';g.lineWidth=LM*2;g.strokeStyle='#fff';g.stroke()}g.restore()}
   g.save();path();g.clip();g.drawImage(im,pad-x0,pad-y0);g.restore();
   if(DEBUG){g.save();g.setLineDash([6,4]);g.strokeStyle='#e5533d';g.lineWidth=2;g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath();g.stroke();g.restore()}
   // pastille numérotée : en haut à gauche de la découpe
@@ -487,12 +489,13 @@ function renderList(sid){
   const enc=encodeURIComponent;box.innerHTML='';
   its.forEach(([id,it])=>{const d=document.createElement('div');d.className='entry'+(isAct(id)?' act':'')+(openEntry===id?' open':'');d.dataset.id=id;
     const q=it.q||it.name||'';
-    d.innerHTML=`<div class="r1"><span class="n"></span><span class="nm"></span></div><div class="det"><div>${it.price?'<div class="pr"></div>':''}${it.note?'<div class="nt"></div>':''}<div class="lk"></div><div class="rsv"></div>${EDIT?`<button class="ed">${svg.edit} Modifier</button>`:''}</div></div>`;
+    d.innerHTML=`<div class="r1"><span class="n"></span><span class="nm"></span></div><div class="det"><div>${(it.price||it.brand)?'<div class="pr"></div>':''}${it.color?'<div class="co"><i></i><span></span></div>':''}${it.note?'<div class="nt"></div>':''}<div class="lk"></div><div class="rsv"></div>${EDIT?`<button class="ed">${svg.edit} Modifier</button>`:''}</div></div>`;
     d.querySelector('.n').textContent=it.n||'';d.querySelector('.nm').textContent=it.name||'Sans nom';
     if(S.res.has(id)){const t=document.createElement('span');t.className='rtag';t.textContent='Réservé';d.querySelector('.nm').appendChild(t)}
     if(it.ph){const t=document.createElement('span');t.className='rtag ph';t.textContent='exemple';d.querySelector('.nm').appendChild(t)}
     rsvUI(id,d.querySelector('.rsv'));
-    if(it.price)d.querySelector('.pr').textContent=it.price;if(it.note)d.querySelector('.nt').textContent=it.note;
+    if(it.price||it.brand)d.querySelector('.pr').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
+    if(it.color){const co=d.querySelector('.co');co.querySelector('span').textContent=it.color.n;const dot=co.querySelector('i');if(it.color.h)dot.style.background=it.color.h;else dot.classList.add('any')}if(it.note)d.querySelector('.nt').textContent=it.note;
     const lk=d.querySelector('.lk');
     (it.links||[]).forEach(l=>{if(!/^https?:\/\//i.test(l.url||''))return;const a=document.createElement('a');a.href=l.url;a.target='_blank';a.rel='noopener';a.textContent=(l.label||hostOf(l.url))+' ↗';lk.appendChild(a)});
     if(q){[['Google Shopping','https://www.google.com/search?tbm=shop&q='],['Leboncoin','https://www.leboncoin.fr/recherche?text=']].forEach(([l,u])=>{const a=document.createElement('a');a.className='s';a.href=u+enc(q);a.target='_blank';a.rel='noopener';a.textContent=l;lk.appendChild(a)})}
@@ -601,7 +604,9 @@ function openForm(id,opt={}){
   document.getElementById('ftitle').textContent=it?'Modifier l’objet':'Ajouter un objet';
   document.getElementById('fsave').textContent=it?'Enregistrer':'Ajouter';
   document.getElementById('fdel').style.display=it?'':'none';document.getElementById('ferr').textContent='';
-  ['name','price','note','q'].forEach(k=>document.getElementById('f_'+k).value=it?(it[k]||''):'');
+  ['name','price','brand','note','q'].forEach(k=>document.getElementById('f_'+k).value=it?(it[k]||''):'');
+  if(it&&!it.brand&&it.price){const parts=it.price.split(/\s*·\s*/),pr=parts.filter(x=>/\d/.test(x)&&/€|eur|\$|£/i.test(x)),br=parts.filter(x=>!pr.includes(x));
+    document.getElementById('f_price').value=pr.join(' ');document.getElementById('f_brand').value=br.join(' · ')}setColor(it?.color||null);
   document.getElementById('f_links').innerHTML='';(it?.links?.length?it.links:[{}]).forEach(linkRow);
   dz.innerHTML='<div>Glisse ou colle une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div>';
   if(it)loadImg(it.src).then(im=>{if(F&&F.id===id&&!F.file){dz.innerHTML='';const i=new Image();i.src=im.src;dz.appendChild(i)}}).catch(()=>{});
@@ -643,7 +648,7 @@ async function prepImage(file){
 form.addEventListener('submit',async e=>{
   e.preventDefault();if(!F)return;const err=document.getElementById('ferr');err.textContent='';
   const name=document.getElementById('f_name').value.trim();if(!name){err.textContent='Il faut un nom.';return}
-  const data={name,price:document.getElementById('f_price').value.trim(),note:document.getElementById('f_note').value.trim(),
+  const data={name,price:document.getElementById('f_price').value.trim(),brand:document.getElementById('f_brand').value.trim(),color:F.color||null,note:document.getElementById('f_note').value.trim(),
     q:document.getElementById('f_q').value.trim(),links:[...document.querySelectorAll('#f_links .l')].map(r=>({label:r.children[0].value.trim(),url:r.children[1].value.trim()})).filter(l=>l.url)};
   data.links.forEach(l=>{if(l.url&&!/^https?:\/\//i.test(l.url))l.url='https://'+l.url});
   if(!F.id&&!F.file){err.textContent='Ajoute une image.';return}
@@ -670,6 +675,7 @@ form.addEventListener('submit',async e=>{
    Dock & réglages
    ===================================================================== */
 document.getElementById('additem').onclick=()=>openForm(null,{sheet:activeSheet});
+document.getElementById('addlinkbtn').onclick=()=>{openForm(null,{sheet:activeSheet});setTimeout(()=>document.getElementById('f_url').focus(),80)};
 document.getElementById('selall').onclick=selectAll;
 /* Mélanger : chevauchement ≤ ~15 px, tout dans la feuille, tailles proches (±6 % en largeur ≈ ±12 % en surface) */
 function smartShuffle(sid){
@@ -726,24 +732,28 @@ document.getElementById('copy').onclick=async()=>{const txt=JSON.stringify(S.cfg
 /* ---------- papier / police / suppression depuis le dock ---------- */
 const PM=document.getElementById('papermenu'),FM=document.getElementById('fontmenu'),DM=document.getElementById('delmenu');
 const PAPERHTML=PAPERS.map(([k,l])=>`<button data-p="${k}"><span class="sw"><span class="paper p-${k}" style="position:absolute;inset:0;filter:none"></span><span class="ruling r-${k}" style="inset:0"></span></span>${l}</button>`).join('');
-PM.innerHTML=PAPERHTML+`<button data-outline type="button"><span class="tg"></span>Liseré blanc autour des objets</button><div class="deco"><label><span>Intensité du motif</span><output id="decoout"></output><input type="range" id="decor" min="0" max="100" step="1"></label></div>`;
+PM.innerHTML=PAPERHTML+`<div class="deco"><label><span>Intensité du motif</span><output id="decoout"></output><input type="range" id="decor" min="0" max="100" step="1"></label></div>`;
 const decor=document.getElementById('decor'),decoout=document.getElementById('decoout');let decoT;
 function syncDeco(){const v=(S.sheets.get(activeSheet)||{}).deco??45;decor.value=v;decoout.textContent=v+' %';decor.style.setProperty('--p',v+'%')}
 decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+' %';decor.style.setProperty('--p',v+'%');
   const el=spreads.get(activeSheet);el&&el.querySelector('.ruling').style.setProperty('--deco',v/100);
   clearTimeout(decoT);decoT=setTimeout(()=>{if(activeSheet)store.setSheet(activeSheet,{deco:v})},350)});
 decor.addEventListener('pointerdown',e=>e.stopPropagation());
-FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('');
+FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button>`;
+const SETM=document.getElementById('setmenu');
+function syncSet(){const sh=S.sheets.get(activeSheet)||{};
+  PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
+  SETM.querySelector('[data-outline] .tg')?.classList.toggle('on',!!sh.outline);
+  FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco()}
 function openMenu(m){const o=m.classList.contains('open');closeMenus();if(o)return;const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
-  PM.querySelector('[data-outline] .tg')?.classList.toggle('on',!!sh.outline);
   FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco();m.classList.add('open')}
-document.getElementById('paperbtn').onclick=e=>{e.stopPropagation();openMenu(PM)};
-document.getElementById('fontbtn').onclick=e=>{e.stopPropagation();openMenu(FM)};
+document.getElementById('setbtn').onclick=e=>{e.stopPropagation();openMenu(SETM)};
+SETM.addEventListener('pointerdown',e=>e.stopPropagation());
 document.getElementById('delbtn').onclick=e=>{e.stopPropagation();openMenu(DM)};
-PM.onclick=e=>{if(e.target.closest('[data-outline]')&&activeSheet){const v=!S.sheets.get(activeSheet)?.outline;store.setSheet(activeSheet,{outline:v});PM.querySelector('[data-outline] .tg').classList.toggle('on',v);return}
-  const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});openMenu(PM);openMenu(PM)}};
-FM.onclick=e=>{const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});openMenu(FM);openMenu(FM)}};
+PM.onclick=e=>{const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});syncSet()}};
+FM.onclick=e=>{if(e.target.closest('[data-outline]')&&activeSheet){store.setSheet(activeSheet,{outline:!S.sheets.get(activeSheet)?.outline});syncSet();return}
+  const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});syncSet()}};
 DM.querySelector('[data-no]').onclick=closeMenus;DM.querySelector('[data-yes]').onclick=()=>{closeMenus();if(!activeSheet)return;const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet),next=ss[i+1]||ss[i-1]||null;store.delSheet(activeSheet);if(next)setActive(next)};
 
 /* ---------- partager ---------- */
@@ -919,13 +929,20 @@ async function fillFromUrl(u,forceImg){
   if(!d){st.className='';st.textContent='Ce site ne se laisse pas lire. Remplis à la main, ou colle une copie de l’image.';ensureLink(u,hostOf(u));return}
   const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};
   const title=(d.title||'').replace(/\s+/g,' ').slice(0,90);set('f_name',title);
-  const site=(d.site||hostOf(d.url||u)).replace(/^www\./,'');set('f_price',[site,d.price].filter(Boolean).join(' · '));
+  const site=(d.site||hostOf(d.url||u)).replace(/^www\./,'');set('f_price',d.price);set('f_brand',site);
   ensureLink(d.url||u,site);
   if(d.image&&(forceImg||!F.file)){st.textContent='Je récupère l’image…';const f=await fetchImage(d.image);if(F!==my)return;if(f)setPreview(f)}
   st.className='';st.textContent=F.file?'C’est rempli. Vérifie et ajuste si besoin.':'Rempli, mais pas d’image : ajoute-la à la main.'}
 function ensureLink(url,label){const rows=[...document.querySelectorAll('#f_links .l')];if(rows.some(r=>r.children[1].value.trim()===url))return;
   let r=rows.find(r=>!r.children[1].value.trim());if(!r){linkRow();r=[...document.querySelectorAll('#f_links .l')].pop()}
   r.children[0].value=r.children[0].value||label||'';r.children[1].value=url}
+const COLORS=[['Rouge','#e2393b'],['Rose','#f48fb1'],['Orange','#f57c2b'],['Jaune','#f6c62a'],['Vert','#2e9e5b'],['Bleu','#2f62d8'],['Violet','#7b4bc4'],['Marron','#8b5a3c'],['Gris','#9a9a9a'],['Noir','#222222'],['Blanc','#ffffff']];
+const FC=document.getElementById('f_colors'),FCO=document.getElementById('f_color_other');
+FC.innerHTML=COLORS.map(([n,h])=>`<button type="button" class="sw" data-n="${n}" data-h="${h}" title="${n}" style="--c:${h}"></button>`).join('')+'<span class="cname" id="f_cname"></span>';
+function setColor(c){if(F)F.color=c;FC.querySelectorAll('.sw').forEach(b=>b.classList.toggle('cur',!!c&&b.dataset.n===c.n));
+  const known=c&&COLORS.some(x=>x[0]===c.n);FCO.value=c&&!known?c.n:'';document.getElementById('f_cname').textContent=known?c.n:''}
+FC.onclick=e=>{const b=e.target.closest('.sw');if(!b)return;setColor(F?.color?.n===b.dataset.n?null:{n:b.dataset.n,h:b.dataset.h})};
+FCO.addEventListener('input',()=>{const v=FCO.value.trim();if(F)F.color=v?{n:v,h:null}:null;FC.querySelectorAll('.sw').forEach(b=>b.classList.remove('cur'));document.getElementById('f_cname').textContent=''});
 document.getElementById('f_fetch').onclick=()=>fillFromUrl(document.getElementById('f_url').value,true);
 document.getElementById('f_url').addEventListener('paste',e=>{const t=e.clipboardData?.getData('text/plain')||'';if(/^\s*https?:\/\/\S+\s*$/.test(t)){e.preventDefault();e.stopPropagation();fillFromUrl(t,true)}});
 document.getElementById('f_url').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fillFromUrl(e.target.value,true)}});
@@ -979,26 +996,14 @@ document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const 
   if(error){m.className='err';m.textContent='Erreur : '+error.message}else m.textContent='C’est envoyé ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
 HOME.querySelector('.hdemo').onclick=e=>{if(MODE==='cloud'){e.preventDefault();toast('L’exemple arrive bientôt')}};
 // stickers découpés (sans passer par les objets de la page)
-function stickerInto(c,im,P,flat){const m=flat?0:S.cfg.margin,pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
+function stickerInto(c,im,P,flat,w){const m=flat?0:lisPx(im.naturalWidth,w||40),pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
   const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
   const path=()=>{g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath()};
   if(!flat){g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.lineJoin='round';g.lineWidth=m*2;g.strokeStyle='#fff';g.fillStyle='#fff';path();g.fill();g.stroke();g.restore()}
   g.drawImage(im,pad-x0,pad-y0);
   const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
   return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
-/* liseré blanc façon sticker autour d'un objet (option de la feuille) */
-function outlineInto(c,im,P,alpha){const m=Math.max(8,S.cfg.margin),pad=m+12;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
-  if(alpha){x0=Math.max(0,x0-4);y0=Math.max(0,y0-4);x1=Math.min(im.naturalWidth,x1+4);y1=Math.min(im.naturalHeight,y1+4)}
-  const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
-  const shape=(h,dx,dy)=>{if(alpha){h.drawImage(im,pad-x0+dx,pad-y0+dy);return}h.beginPath();P.forEach((p,i)=>i?h.lineTo(p[0]-x0+pad+dx,p[1]-y0+pad+dy):h.moveTo(p[0]-x0+pad+dx,p[1]-y0+pad+dy));h.closePath();h.fill()};
-  const sil=document.createElement('canvas');sil.width=cw;sil.height=ch;const s=sil.getContext('2d');s.fillStyle='#000';
-  [1,.66,.33].forEach(f=>{for(let k=0;k<28;k++){const t=k/28*Math.PI*2;shape(s,Math.cos(t)*m*f,Math.sin(t)*m*f)}});shape(s,0,0);
-  s.globalCompositeOperation='source-in';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);
-  g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.drawImage(sil,0,0);g.restore();
-  g.save();if(!alpha){g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath();g.clip()}g.drawImage(im,pad-x0,pad-y0);g.restore();
-  const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
-  return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
-async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat).scale}
+async function drawSticker(c,key,flat,w){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat,w).scale}
 /* ---------- feuilles d'exemple de l'accueil ----------
    Elles s'éditent comme de vraies listes : ouvrir ?edithome, puis « Modifier les exemples » (famille #accueil).
    L'accueil affiche une image de chaque feuille. Une fois validées, ces images sont figées dans img/home/. */
@@ -1008,12 +1013,12 @@ function defaultHomeLayout(){const L={sheets:[]};
   [{paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},{paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},
    {paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},{paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}].forEach(e=>{
     const R=rng(e.seed),keys=randomStickers(e.n,e.seed*101),widths=keys.map((_,j)=>e.sizes[j%e.sizes.length]*(.85+R()*.3));
-    L.sheets.push({paper:e.paper,flat:e.flat,st:packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
+    L.sheets.push({paper:e.paper,flat:e.flat,st:packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{flat:e.flat,gapK:e.flat?1.3:1,res:1.4})
       .map(o=>({k:o.k,x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a,flat:e.flat}))})});
   return L}
 const HIMG_KEY='collage-home-images';
 function homeImages(){if(HEDIT){try{const a=JSON.parse(localStorage.getItem(HIMG_KEY));if(Array.isArray(a)&&a.length)return a}catch(e){}}return HOME_IMAGES}
-function renderStk(c){const d=c._d;drawSticker(c,d.k,d.flat).then(sc=>{c.style.left=d.x+'%';c.style.top=d.y+'%';c.style.width=(d.w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${d.a}deg)`}).catch(()=>{})}
+function renderStk(c){const d=c._d;drawSticker(c,d.k,d.flat,d.w).then(sc=>{c.style.left=d.x+'%';c.style.top=d.y+'%';c.style.width=(d.w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${d.a}deg)`}).catch(()=>{})}
 function placeSticker(parent,d){const c=document.createElement('canvas');c._d=d;parent.appendChild(c);renderStk(c);return c}
 function buildHome(){
   const st=HOME.querySelector('.hstk');st.innerHTML='';HOME.querySelectorAll('.hside').forEach(h=>h.innerHTML='');
