@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=202611160009">
+<link rel="stylesheet" href="css/app.css?v=202611160014">
 <style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
@@ -122,7 +122,7 @@
   <div class="hsheet"><div class="paper p-uni"></div><div class="ruling r-uni"></div><div class="hstk"></div>
     <div class="hcontent">
       <h1 class="htitle">Paper<i>Wish</i></h1>
-      <p class="hlead">Tes envies découpées aux ciseaux et collées sur papier. Colle un lien, l’objet se découpe tout seul, tes proches réservent en un clic. Pour Noël, un anniversaire ou une naissance.</p>
+      <p class="hlead">Tes envies sur papier… numérique. Colle un lien, l’objet se découpe tout seul, tes proches réservent en un clic. Pour Noël, un anniversaire ou une naissance.</p>
       <div class="hauth">
         <div class="htabs"><button type="button" data-t="new" class="cur">Créer une liste</button><button type="button" data-t="login">Se connecter</button></div>
         <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta liste, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
@@ -130,10 +130,14 @@
       </div>
       <a href="#demo" class="hdemo">ou regarde un exemple →</a>
       <div id="hhub">
-        <div class="hhello"><span id="hwho"></span><button type="button" id="hlogout">Se déconnecter</button></div>
-        <div class="hhead">Tes listes</div>
-        <div class="hcards" id="hcards"></div>
-        <form class="hnew" id="hnew" autocomplete="off"><input id="hnewname" placeholder="Nouvelle liste, ex. Anniversaire de Lou"><button class="btn dark" type="submit">+ Créer</button></form>
+        <p class="htag">Tes envies sur papier… numérique.</p>
+        <p class="hwelcome">Bienvenue ! Ouvre une liste pour y coller tes envies, ou crée-en une nouvelle pour Noël, un anniversaire, une naissance…</p>
+        <div class="hpanel">
+          <div class="hhead"><span>Tes listes</span><small id="hwho"></small></div>
+          <div class="hcards" id="hcards"></div>
+          <form class="hnew" id="hnew" autocomplete="off"><input id="hnewname" placeholder="Nom de la nouvelle liste"><button class="btn dark" type="submit">+ Créer</button></form>
+        </div>
+        <button type="button" id="hlogout">Se déconnecter</button>
       </div>
       <div class="hfavs" id="hfavs"></div>
     </div></div>
@@ -159,8 +163,8 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=202611160009"></script>
+<script src="config.js?v=202611160014"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js?v=202611160009"></script>
+<script src="js/app.js?v=202611160014"></script>
 </body>
 </html>

@@ -935,7 +935,7 @@ function myLists(){return [...(MODE==='cloud'?MYFAMS:S.boards)].filter(([id])=>i
 const HUB_COL=['#e5533d','#2f6fde','#1f9d55','#f2b705','#8b4fd8','#f07f2e','#e86aa6','#23a8a0'];
 function hubOn(){return !!(USER&&MODE==='cloud')||(MODE==='local'&&CAN_WRITE&&!HEDIT&&myLists().length>0)}
 function renderHub(){const on=hubOn();HOME.classList.toggle('hub',on);if(!on)return;
-  document.getElementById('hwho').innerHTML=USER?'Connecté · <b>'+esc(USER.email||'')+'</b>':'Mode local · rien n’est partagé';document.getElementById('hlogout').style.display=USER?'':'none';
+  document.getElementById('hwho').textContent=USER?(USER.email||''):'Mode local · rien n’est partagé';document.getElementById('hlogout').style.display=USER?'':'none';
   const c=document.getElementById('hcards');c.innerHTML='';const L=myLists();c.classList.toggle('many',L.length>3);
   L.forEach((f,i)=>{const b=S.boards.get(f.id)||MYFAMS.get(f.id)||{},x=document.createElement('a');x.href='#'+f.id;x.className='hcard';x.style.setProperty('--c',HUB_COL[i%HUB_COL.length]);
     x.innerHTML='<span class="hcn"></span><span class="hcs"></span><span class="hcgo">Ouvrir →</span>';x.querySelector('.hcn').textContent=f.name;x.querySelector('.hcs').textContent=b.subtitle||'';
