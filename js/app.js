@@ -320,9 +320,11 @@ function itemPoly(it,im){
 let DEBUG=false;
 async function drawPiece(id,el,force){
   const it=S.items.get(id);if(!it)return;
-  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG].join('|');if(!force&&el._key===key)return;el._key=key;
+  const OUT=!it.ph&&!it.src.startsWith('builtin:ph')&&!!S.sheets.get(it.sheet)?.outline;
+  const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG,OUT].join('|');if(!force&&el._key===key)return;el._key=key;
   let im;try{im=await loadImg(it.src)}catch(e){return}
   const W=im.naturalWidth,H=im.naturalHeight,P=itemPoly(it,im);
+  if(OUT){const r=outlineInto(el.querySelector('canvas'),im,P,!!it.alpha);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
   if(it.src.startsWith('builtin:ph')){const r=stickerInto(el.querySelector('canvas'),im,P);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
   const M=getMask(it.src,im,P,!!it.alpha,S.cfg.margin);
   const V=cutPath(P,M,W,H,it.seed||1);
@@ -724,7 +726,7 @@ document.getElementById('copy').onclick=async()=>{const txt=JSON.stringify(S.cfg
 /* ---------- papier / police / suppression depuis le dock ---------- */
 const PM=document.getElementById('papermenu'),FM=document.getElementById('fontmenu'),DM=document.getElementById('delmenu');
 const PAPERHTML=PAPERS.map(([k,l])=>`<button data-p="${k}"><span class="sw"><span class="paper p-${k}" style="position:absolute;inset:0;filter:none"></span><span class="ruling r-${k}" style="inset:0"></span></span>${l}</button>`).join('');
-PM.innerHTML=PAPERHTML+`<div class="deco"><label><span>Intensité du motif</span><output id="decoout"></output><input type="range" id="decor" min="0" max="100" step="1"></label></div>`;
+PM.innerHTML=PAPERHTML+`<button data-outline type="button"><span class="tg"></span>Liseré blanc autour des objets</button><div class="deco"><label><span>Intensité du motif</span><output id="decoout"></output><input type="range" id="decor" min="0" max="100" step="1"></label></div>`;
 const decor=document.getElementById('decor'),decoout=document.getElementById('decoout');let decoT;
 function syncDeco(){const v=(S.sheets.get(activeSheet)||{}).deco??45;decor.value=v;decoout.textContent=v+' %';decor.style.setProperty('--p',v+'%')}
 decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+' %';decor.style.setProperty('--p',v+'%');
@@ -734,11 +736,13 @@ decor.addEventListener('pointerdown',e=>e.stopPropagation());
 FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('');
 function openMenu(m){const o=m.classList.contains('open');closeMenus();if(o)return;const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
+  PM.querySelector('[data-outline] .tg')?.classList.toggle('on',!!sh.outline);
   FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco();m.classList.add('open')}
 document.getElementById('paperbtn').onclick=e=>{e.stopPropagation();openMenu(PM)};
 document.getElementById('fontbtn').onclick=e=>{e.stopPropagation();openMenu(FM)};
 document.getElementById('delbtn').onclick=e=>{e.stopPropagation();openMenu(DM)};
-PM.onclick=e=>{const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});openMenu(PM);openMenu(PM)}};
+PM.onclick=e=>{if(e.target.closest('[data-outline]')&&activeSheet){const v=!S.sheets.get(activeSheet)?.outline;store.setSheet(activeSheet,{outline:v});PM.querySelector('[data-outline] .tg').classList.toggle('on',v);return}
+  const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});openMenu(PM);openMenu(PM)}};
 FM.onclick=e=>{const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});openMenu(FM);openMenu(FM)}};
 DM.querySelector('[data-no]').onclick=closeMenus;DM.querySelector('[data-yes]').onclick=()=>{closeMenus();if(!activeSheet)return;const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet),next=ss[i+1]||ss[i-1]||null;store.delSheet(activeSheet);if(next)setActive(next)};
 
@@ -980,6 +984,18 @@ function stickerInto(c,im,P,flat){const m=flat?0:S.cfg.margin,pad=m+10;let x0=1e
   const path=()=>{g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath()};
   if(!flat){g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.lineJoin='round';g.lineWidth=m*2;g.strokeStyle='#fff';g.fillStyle='#fff';path();g.fill();g.stroke();g.restore()}
   g.drawImage(im,pad-x0,pad-y0);
+  const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
+  return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
+/* liseré blanc façon sticker autour d'un objet (option de la feuille) */
+function outlineInto(c,im,P,alpha){const m=Math.max(8,S.cfg.margin),pad=m+12;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
+  if(alpha){x0=Math.max(0,x0-4);y0=Math.max(0,y0-4);x1=Math.min(im.naturalWidth,x1+4);y1=Math.min(im.naturalHeight,y1+4)}
+  const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
+  const shape=(h,dx,dy)=>{if(alpha){h.drawImage(im,pad-x0+dx,pad-y0+dy);return}h.beginPath();P.forEach((p,i)=>i?h.lineTo(p[0]-x0+pad+dx,p[1]-y0+pad+dy):h.moveTo(p[0]-x0+pad+dx,p[1]-y0+pad+dy));h.closePath();h.fill()};
+  const sil=document.createElement('canvas');sil.width=cw;sil.height=ch;const s=sil.getContext('2d');s.fillStyle='#000';
+  [1,.66,.33].forEach(f=>{for(let k=0;k<28;k++){const t=k/28*Math.PI*2;shape(s,Math.cos(t)*m*f,Math.sin(t)*m*f)}});shape(s,0,0);
+  s.globalCompositeOperation='source-in';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);
+  g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.drawImage(sil,0,0);g.restore();
+  g.save();if(!alpha){g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath();g.clip()}g.drawImage(im,pad-x0,pad-y0);g.restore();
   const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
   return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
 async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat).scale}
