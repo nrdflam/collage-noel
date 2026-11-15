@@ -181,7 +181,7 @@ addEventListener('hashchange',()=>{const h=hashFam();if(MODE==='cloud'){if(h&&h!
 function syncBrand(){const f=document.querySelector('#brand .fam'),s=document.querySelector('#brand .fsub');if(!f)return;const b=S.boards.get(activeBoard);
   if(document.activeElement!==f)f.textContent=b?.name||'';f.contentEditable=EDIT?'true':'false';
   if(s){if(document.activeElement!==s)s.textContent=b?.subtitle??'Listes de Noël';s.contentEditable=EDIT?'true':'false'}
-  document.title=(b?.name?b.name+' · ':'')+'Listes de Noël'}
+  document.title=(b?.name?b.name+' · ':'')+'Listes de Noël';renderFavs()}
 function setStatus(t,live){const s=document.getElementById('status');s.querySelector('span').textContent=t;s.classList.toggle('live',live)}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
 
@@ -1044,5 +1044,31 @@ async function makeHomeImages(){const ss=sortedSheets().map(x=>x[0]).slice(0,4),
 async function copyAccueil(){const b=S.boards.get('accueil')||{},sh=[...S.sheets].filter(([,v])=>v.board==='accueil'),ids=new Set(sh.map(x=>x[0]));
   const data={app:'collage-noel',version:1,accueil:true,board:b,sheets:sh,items:[...S.items].filter(([,v])=>ids.has(v.sheet))},t=JSON.stringify(data);
   try{await navigator.clipboard.writeText(t);toast(t.length>400000?'Copié (gros texte : tes images sont dedans). Colle-le à Claude.':'Copié : colle-le à Claude')}catch(e){prompt('Copie ce texte :',t)}}
+
+/* =====================================================================
+   Favoris (visiteurs) : les listes des autres familles, gardées dans le navigateur
+   ===================================================================== */
+const FKEY='collage-favoris';
+const favs=()=>{try{return JSON.parse(localStorage.getItem(FKEY))||[]}catch(e){return []}};
+const saveFavs=a=>{try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}renderFavs()};
+const favUrl=id=>PAGE_URL+'#'+id;
+function toggleFav(id){const a=favs(),i=a.findIndex(f=>f.id===id);
+  if(i>=0){a.splice(i,1);saveFavs(a);toast('Retirée de tes favoris');return}
+  const b=S.boards.get(id)||{};a.unshift({id,name:b.name||'Liste',sub:b.subtitle||'',at:Date.now()});saveFavs(a);toast('Ajoutée à tes favoris : tu la retrouveras en haut à droite et sur l’accueil')}
+function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeBoard);
+  // garder le nom à jour
+  if(fav){const b=S.boards.get(activeBoard),f=a.find(x=>x.id===activeBoard);if(b&&b.name&&f.name!==b.name){f.name=b.name;try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}}}
+  const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
+  document.getElementById('favwrap').style.display=a.length?'':'none';
+  const h=document.getElementById('hfavs');h.innerHTML='';if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
+    const w=document.createElement('div');w.className='hfw';a.forEach(f=>{const x=document.createElement('a');x.href=favUrl(f.id);x.textContent=f.name;x.onclick=()=>hideHome();w.appendChild(x)});h.appendChild(w)}}
+document.getElementById('favstar').onclick=()=>{if(activeBoard)toggleFav(activeBoard)};
+const FVM=document.getElementById('favmenu');
+document.getElementById('favbtn').onclick=e=>{e.stopPropagation();const o=FVM.classList.contains('open');closeMenus();if(o)return;FVM.innerHTML='<div class="mh">Mes listes favorites</div>';
+  favs().forEach(f=>{const r=document.createElement('div');r.className='frow';r.innerHTML=`<button class="go${f.id===activeBoard?' cur':''}"></button><button class="rm" title="Retirer des favoris">×</button>`;
+    r.querySelector('.go').textContent=f.name;r.querySelector('.go').onclick=()=>{closeMenus();location.hash=f.id};
+    r.querySelector('.rm').onclick=ev=>{ev.stopPropagation();saveFavs(favs().filter(x=>x.id!==f.id));r.remove();if(!favs().length)closeMenus()};FVM.appendChild(r)});
+  const n=document.createElement('div');n.className='mnote';n.textContent='Gardés dans ce navigateur.';FVM.appendChild(n);FVM.classList.add('open')};
+renderFavs();
 
 boot();

@@ -434,3 +434,23 @@
   .entry .co{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-top:3px}
   .entry .co i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
   .entry .co i.any{background:conic-gradient(#e2393b,#f6c62a,#2e9e5b,#2f62d8,#7b4bc4,#e2393b)}
+
+  /* ---------- favoris ---------- */
+  #favstar{display:none;border:0;background:none;cursor:pointer;font:500 11.5px Inter;color:var(--muted);padding:2px 8px;border-radius:999px}
+  body.viewer #favstar{display:inline-block}
+  #favstar:hover{background:rgba(0,0,0,.05);color:var(--ink)}
+  #favstar.on{color:#c98a00}
+  body.stack #favstar{font-size:12.5px;border:1px solid var(--line);background:rgba(255,255,255,.6);padding:4px 12px}
+  #favbtn{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px);border-radius:999px;padding:8px 14px;font:500 12.5px Inter;cursor:pointer;box-shadow:var(--shadow);color:var(--ink)}
+  #favbtn:hover{background:#fff}
+  #favmenu{left:auto;right:0;min-width:240px}
+  #favmenu .frow{display:flex;align-items:center}
+  #favmenu .frow .go{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #favmenu .frow .rm{width:28px;flex:none;justify-content:center;color:var(--muted);font-size:16px}
+  .hfavs:empty{display:none}
+  .hfavs{margin-top:2.6cqw;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .hft{font:600 10.5px Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .hfw{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .hfw a{font:500 12.5px Inter;color:var(--ink);text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+  .hfw a::before{content:"★ ";color:#c98a00}
+  .hfw a:hover{border-color:var(--ink)}
