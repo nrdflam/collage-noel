@@ -82,7 +82,7 @@ async function boot(){
       if(!S.boards.size){const bid='demo';S.boards.set(bid,{name:'Ma famille',order:1});S.sheets.forEach(v=>v.board=bid)}}
     else if(HEDIT)seedAccueil();else seedDemoLocal();
     if(new URLSearchParams(location.search).has('visiteur')){CAN_WRITE=false;UI='view';VIEW='stack'}
-    pickBoard();recomputeEdit();renderAll();setStatus(CAN_WRITE?'Mode local (non partagé)':'Démo · vue visiteur',false);renderAccount();if(!hashFam())showHome();else accueilBar();return}
+    pickBoard();recomputeEdit();renderAll();setStatus(CAN_WRITE?'Mode local (non partagé)':'Démo · vue visiteur',false);renderAccount();if(!hashFam()&&!PENDING_ADD)showHome();else accueilBar();setTimeout(consumeAdd,300);return}
   MODE='cloud';CAN_WRITE=false;UI='view';setStatus('Chargement…',false);
   const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;
   {const q=new URLSearchParams(location.search);if(q.has('code')){q.delete('code');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}}
@@ -99,7 +99,7 @@ async function afterAuth(first){
       if(ok){toast('Tu peux maintenant modifier cette liste');history.replaceState(null,'',location.pathname+location.hash);return afterAuth()}else toast('Ce lien d’invitation n’est plus valide')}}
   renderAccount();
   let fid=hashFam();
-  if(!fid&&MYFAMS.size)fid=[...MYFAMS].sort((a,b)=>a[1].order-b[1].order)[0][0];
+  if(!fid&&MYFAMS.size){let last=null;try{last=localStorage.getItem('collage-last-fam')}catch(e){}fid=MYFAMS.has(last)?last:[...MYFAMS].sort((a,b)=>a[1].order-b[1].order)[0][0]}
   if(!fid){const pn=pendingName();if(USER&&pn){localStorage.removeItem('collage-pending-fam');createFamily(pn);return}showHome();return}
   await loadFamily(fid,first);
 }
@@ -115,7 +115,7 @@ async function loadFamily(fid,first){
   S.boards=new Map(MYFAMS);S.boards.set(fid,{...(MYFAMS.get(fid)||{}),...FAM.data,reserve_mode:FAM.reserve_mode});
   S.sheets=new Map((sh.data||[]).map(r=>[r.id,{...r.data,board:fid}]));
   S.items=new Map((it.data||[]).map(r=>[r.id,r.data]));
-  CAN_WRITE=!!USER&&MYFAMS.has(fid);
+  CAN_WRITE=!!USER&&MYFAMS.has(fid);if(CAN_WRITE)try{localStorage.setItem('collage-last-fam',fid)}catch(e){}
   try{UI=CAN_WRITE?(localStorage.getItem('collage-ui')||'edit'):'view'}catch(e){UI=CAN_WRITE?'edit':'view'}
   VIEW=UI==='view'?'stack':'open';
   await loadRes();
@@ -123,6 +123,7 @@ async function loadFamily(fid,first){
   if(CAN_WRITE&&!sortedSheets().length)addSheet();
   recomputeEdit();renderAll(true);renderAccount();
   setStatus(CAN_WRITE?'Enregistré':'Lecture seule',true);
+  setTimeout(consumeAdd,300);
 }
 function subscribe(fid){
   if(CHANNEL)SB.removeChannel(CHANNEL);
@@ -482,7 +483,7 @@ let wAcc=0,wLock=0;
 addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<=Math.abs(e.deltaY)||modal.classList.contains('on'))return;e.preventDefault();
   if(Date.now()<wLock)return;wAcc+=e.deltaX;if(Math.abs(wAcc)>70){const d=wAcc>0?1:-1;wAcc=0;wLock=Date.now()+550;
     const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet);if(d>0&&i===ss.length-1)return;goSheet(d)}},{passive:false});
-function setActive(id){if(activeSheet===id)return;activeSheet=id;layoutSpreads();
+function setActive(id){if(activeSheet===id)return;activeSheet=id;try{if(EDIT)localStorage.setItem('collage-last-sheet',id)}catch(e){}layoutSpreads();
   [...sel].forEach(k=>{if(S.items.get(k)?.sheet!==id)sel.delete(k)});syncSel();renderPager()}
 function goSheet(d){const ss=sortedSheets().map(s=>s[0]);const i=ss.indexOf(activeSheet)+d;if(i>=0&&i<ss.length)setActive(ss[i])}
 function renderPager(){const p=document.getElementById('pager'),ss=sortedSheets();p.classList.toggle('show',ss.length>1);if(ss.length<2)return;
@@ -621,6 +622,10 @@ function openForm(id,opt={}){
   if(opt.file)setPreview(opt.file);
   modal.classList.add('on');setTimeout(()=>document.getElementById(it||opt.url?'f_name':'f_url').focus(),50);
   if(opt.url)fillFromUrl(opt.url,!opt.file);
+  if(opt.prefill){const d=opt.prefill;document.getElementById('f_url').value=d.u||'';document.getElementById('f_name').value=(d.t||'').replace(/\s*[|\-–:]\s*(Amazon\.fr|Amazon|Fnac(\.com)?|Cdiscount|Decathlon|Zara Home|LEGO®? Shop).*$/i,'').slice(0,100);
+    document.getElementById('f_price').value=d.p||'';const sn=d.s&&!/\./.test(d.s)?d.s:shopName(d.u||'');document.getElementById('f_brand').value=sn;if(d.u)ensureLink(d.u,sn);
+    const st=document.getElementById('f_urlst');if(d.i){st.className='busy';st.textContent='Je récupère l’image…';const my=F;fetchImage(d.i).then(f=>{if(F!==my)return;st.className='';if(f){setPreview(f);st.textContent='Rempli depuis la page. Vérifie et ajuste si besoin.'}else st.textContent='Image inaccessible : copie-la sur la page du produit et colle-la ici.'})}
+    else st.textContent='Pas d’image trouvée : copie-la sur la page du produit et colle-la ici.'}
 }
 function closeForm(){modal.classList.remove('on');F=null}
 document.getElementById('fcancel').onclick=closeForm;
@@ -914,6 +919,12 @@ AB.onclick=e=>{e.stopPropagation();if(!USER){showWelcome();return}const o=AM.cla
    Aperçu de lien : titre, image, prix depuis une page produit
    ===================================================================== */
 const enc_=encodeURIComponent;
+const SHOPS={'amazon':'Amazon','fnac':'Fnac','lego':'LEGO','zarahome':'Zara Home','zara':'Zara','decathlon':'Decathlon','ikea':'IKEA','king-jouet':'King Jouet','cdiscount':'Cdiscount','etsy':'Etsy','natureetdecouvertes':'Nature & Découvertes','oxybul':'Oxybul','joueclub':'JouéClub','smythstoys':'Smyths Toys','laredoute':'La Redoute','vertbaudet':'Vertbaudet','galerieslafayette':'Galeries Lafayette','maisonsdumonde':'Maisons du Monde','hm':'H&M','uniqlo':'Uniqlo','boulanger':'Boulanger','darty':'Darty','cultura':'Cultura','leroymerlin':'Leroy Merlin','sephora':'Sephora','nocibe':'Nocibé','apple':'Apple','playmobil':'Playmobil','auchan':'Auchan','carrefour':'Carrefour','leclerc':'E.Leclerc','ebay':'eBay','vinted':'Vinted','leboncoin':'Leboncoin','djeco':'Djeco','petitbateau':'Petit Bateau','jacadi':'Jacadi','cyrillus':'Cyrillus','okaidi':'Okaïdi','kiabi':'Kiabi','monoprix':'Monoprix','printemps':'Printemps','bhv':'BHV','fnac-darty':'Fnac'};
+function shopName(u){try{const h=new URL(u).hostname.replace(/^www\.|^m\./,'');const k=h.split('.').slice(-2)[0];return SHOPS[k]||SHOPS[h.split('.')[0]]||(k.charAt(0).toUpperCase()+k.slice(1))}catch(e){return ''}}
+function slugTitle(u){try{const parts=new URL(u).pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  const cand=parts.filter(x=>/[a-z]/i.test(x)&&/[-_ ]/.test(x)&&!/^(dp|p|product|produit|fr|fr-fr|en|gp|mp|c\d*|w-\d+)$/i.test(x)).sort((a,b)=>b.length-a.length)[0]||'';
+  let t=cand.replace(/\.(html?|php|aspx?)$/,'').replace(/[-_]+/g,' ').replace(/\b[a-z]?\d{5,}\b/gi,'').replace(/\s+/g,' ').trim();
+  return t?t.charAt(0).toUpperCase()+t.slice(1):''}catch(e){return ''}}
 async function unfurl(u){
   if(SB){try{const r=await fetch(CFG.supabaseUrl+'/functions/v1/unfurl?url='+enc_(u),{headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+CFG.supabaseAnonKey}});
     if(r.ok){const j=await r.json();if(j.title||j.image)return j}}catch(e){console.warn('unfurl',e)}}
@@ -931,11 +942,13 @@ async function fillFromUrl(u,forceImg){
   const st=document.getElementById('f_urlst'),fu=document.getElementById('f_url');fu.value=u;st.className='busy';st.textContent='Je lis la page…';
   const my=F;
   if(isImgUrl(u)){const f=await fetchImage(u);if(F!==my)return;st.className='';if(f){setPreview(f);st.textContent='Image récupérée'}else st.textContent='Image inaccessible : copie-la puis colle-la ici';return}
-  const d=await unfurl(u);if(F!==my)return;
-  if(!d){st.className='';st.textContent='Ce site ne se laisse pas lire. Remplis à la main, ou colle une copie de l’image.';ensureLink(u,hostOf(u));return}
+  let d=await unfurl(u);if(F!==my)return;
+  if(!d||!d.title){const t=slugTitle(u),sn=shopName(u);d={...(d||{}),url:u,title:d?.title||t,site:d?.site||sn,partial:true}}
+  if(d.partial&&!d.image){const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};set('f_name',d.title);set('f_brand',d.site);ensureLink(u,d.site);
+    st.className='';st.innerHTML='Ce site bloque la lecture automatique : j’ai mis le nom et la boutique d’après l’adresse. Pour tout remplir (image, prix), utilise le bouton <b>+ Collage</b> depuis la page du produit, ou colle l’image ici.';return}
   const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};
   const title=(d.title||'').replace(/\s+/g,' ').slice(0,90);set('f_name',title);
-  const site=(d.site||hostOf(d.url||u)).replace(/^www\./,'');set('f_price',d.price);set('f_brand',site);
+  const site=(d.site&&!/\./.test(d.site)?d.site:shopName(d.url||u))||hostOf(u);set('f_price',d.price);set('f_brand',site);
   ensureLink(d.url||u,site);
   if(d.image&&(forceImg||!F.file)){st.textContent='Je récupère l’image…';const f=await fetchImage(d.image);if(F!==my)return;if(f)setPreview(f)}
   st.className='';st.textContent=F.file?'C’est rempli. Vérifie et ajuste si besoin.':'Rempli, mais pas d’image : ajoute-la à la main.'}
@@ -1097,5 +1110,18 @@ function deleteSelection(){const keys=[...sel].filter(k=>S.items.has(k));if(!key
   const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{saved.forEach(([k,v])=>store.setItem(k,v,true));before.forEach(([k,n])=>{if(S.items.has(k)&&S.items.get(k).n!==n)store.setItem(k,{n},true)});renderAll();t.classList.remove('on')};
   t.append(sp,u);t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),6000)}
 document.getElementById('delsel').onclick=deleteSelection;
+
+/* =====================================================================
+   Bouton « + Collage » pour la barre de favoris : lit la page produit dans le navigateur
+   (là où les sites ne bloquent pas) et ouvre la liste avec la fiche remplie
+   ===================================================================== */
+const BOOKMARKLET='javascript:'+encodeURI("(()=>{const q=s=>document.querySelector(s),m=n=>(q('meta[property=\"'+n+'\"]')||q('meta[name=\"'+n+'\"]'))?.content||'';let ld={};document.querySelectorAll('script[type=\"application/ld+json\"]').forEach(s=>{try{const w=o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o))return o.forEach(w);const t=o['@type'];if((t==='Product'||(Array.isArray(t)&&t.includes('Product')))&&!ld.name)ld=o;w(o['@graph'])};w(JSON.parse(s.textContent))}catch(e){}});const of=(Array.isArray(ld.offers)?ld.offers[0]:ld.offers)||{};let img=q('#landingImage')?.getAttribute('data-old-hires')||m('og:image')||(Array.isArray(ld.image)?ld.image[0]:(ld.image?.url||ld.image))||'';if(typeof img!=='string')img=img?.url||'';if(!img){let b='',a=0;document.querySelectorAll('img').forEach(i=>{const s=i.naturalWidth*i.naturalHeight,r=i.getBoundingClientRect();if(s>a&&i.currentSrc&&r.top<innerHeight*1.5&&r.width>120){a=s;b=i.currentSrc}});img=b}let p=String(of.price||of.lowPrice||m('product:price:amount')||m('og:price:amount')||q('[itemprop=price]')?.getAttribute('content')||'');if(/^\\d+([.,]\\d+)?$/.test(p))p=p.replace('.',',')+' \u20ac';if(!p){const e=q('#corePrice_feature_div .a-offscreen')||q('.a-price .a-offscreen')||q('[itemprop=price]')||q('[class*=\"price\" i]');const t=(e?.textContent||'').match(/\\d[\\d\\s\u202f.,]*\\s?\u20ac|\u20ac\\s?\\d[\\d\\s\u202f.,]*/);p=t?t[0].replace(/\\s+/g,' ').trim():''}const d={u:q('link[rel=canonical]')?.href||location.href,t:String(ld.name||m('og:title')||document.title).trim().slice(0,140),i:img?new URL(img,location.href).href:'',p,s:m('og:site_name')||ld.brand?.name||location.hostname.replace(/^www\\./,'')};open('__BASE__?add='+encodeURIComponent(JSON.stringify(d)),'_blank')})()".replace('__BASE__',PAGE_URL));
+document.querySelectorAll('.bmlink').forEach(a=>{a.href=BOOKMARKLET;a.onclick=e=>{e.preventDefault();toast('Glisse ce bouton dans ta barre de favoris (⌘⇧B pour l’afficher)')}});
+const PENDING_ADD=(()=>{try{const v=QS.get('add');return v?JSON.parse(v):null}catch(e){return null}})();
+if(PENDING_ADD){const q=new URLSearchParams(location.search);q.delete('add');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}
+function consumeAdd(){if(!PENDING_ADD||consumeAdd.done)return;if(!CAN_WRITE){toast('Connecte-toi pour ajouter cet objet à ta liste');return}consumeAdd.done=true;
+  let sid=null;try{const l=localStorage.getItem('collage-last-sheet');if(l&&S.sheets.has(l)&&S.sheets.get(l).board===activeBoard)sid=l}catch(e){}
+  if(sid&&sid!==activeSheet)setActive(sid);
+  openForm(null,{sheet:sid||activeSheet,prefill:PENDING_ADD})}
 
 boot();
