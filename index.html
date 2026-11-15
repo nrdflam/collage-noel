@@ -103,6 +103,26 @@
   <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="Famille Dupont" required><button class="btn dark">Créer ma liste</button></form></div>
   <button type="button" class="wclose" id="wclose">Fermer</button>
 </div></div>
+<div id="confirm"><div class="ccard">
+  <h3 id="ctitle"></h3><p id="ctext"></p>
+  <div id="cwarn"></div>
+  <label id="ctype">Pour confirmer, tape le nom de la famille :<input id="cinput" autocomplete="off" spellcheck="false"></label>
+  <div class="cact"><button type="button" class="btn" id="cno">Annuler</button><button type="button" class="btn danger-fill" id="cyes">Supprimer</button></div>
+</div></div>
+<div id="home">
+  <div class="hside hl"></div><div class="hside hr"></div>
+  <div class="hsheet"><div class="paper p-uni"></div><div class="ruling r-uni"></div><div class="hstk"></div>
+    <div class="hcontent">
+      <h1 class="htitle">Collage <i>de</i> Noël</h1>
+      <p class="hlead">La liste de Noël de toute la famille, découpée et collée sur une feuille de papier. Tu ajoutes tes envies en collant un lien, tes proches les voient et réservent le cadeau en un clic.</p>
+      <div class="hauth">
+        <div class="htabs"><button type="button" data-t="new" class="cur">Créer une liste</button><button type="button" data-t="login">Se connecter</button></div>
+        <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta famille, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
+        <small id="hmsg">Pas de mot de passe : tu reçois un lien de connexion par mail.</small>
+      </div>
+      <a href="#demo" class="hdemo">ou regarde un exemple →</a>
+    </div></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
