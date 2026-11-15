@@ -80,7 +80,8 @@ async function boot(){
     if(local&&local.sheets){(local.boards||[]).forEach(([k,v])=>S.boards.set(k,v));local.sheets.forEach(([k,v])=>S.sheets.set(k,v));local.items.forEach(([k,v])=>S.items.set(k,v));(local.res||[]).forEach(([k,v])=>S.res.set(k,v));
       if(!S.boards.size){const bid='demo';S.boards.set(bid,{name:'Ma famille',order:1});S.sheets.forEach(v=>v.board=bid)}}
     else if(HEDIT)seedAccueil();else seedDemoLocal();
-    pickBoard();recomputeEdit();renderAll();setStatus('Mode local (non partagé)',false);renderAccount();if(!hashFam())showHome();else accueilBar();return}
+    if(new URLSearchParams(location.search).has('visiteur')){CAN_WRITE=false;UI='view';VIEW='stack'}
+    pickBoard();recomputeEdit();renderAll();setStatus(CAN_WRITE?'Mode local (non partagé)':'Démo · vue visiteur',false);renderAccount();if(!hashFam())showHome();else accueilBar();return}
   MODE='cloud';CAN_WRITE=false;UI='view';setStatus('Chargement…',false);
   const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;
   {const q=new URLSearchParams(location.search);if(q.has('code')){q.delete('code');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}}
@@ -176,7 +177,7 @@ function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.cla
    else{if(sw.parentNode!==dock){dock.appendChild(sw)}sm.classList.add('up')}}
   const m=document.getElementById('modes');m.classList.toggle('show',CAN_WRITE);m.querySelectorAll('button').forEach(x=>x.classList.toggle('cur',x.dataset.m===UI));
   if(!EDIT){setSel([]);dev.classList.remove('on')}syncBrand()}
-function setUI(u){closeMenus();UI=u;VIEW=u==='view'?'stack':'open';try{localStorage.setItem('collage-ui',u)}catch(e){}recomputeEdit();renderAll()}
+function setUI(u){closeMenus();UI=u;setTimeout(renderFavs);VIEW=u==='view'?'stack':'open';try{localStorage.setItem('collage-ui',u)}catch(e){}recomputeEdit();renderAll()}
 const firstBoard=()=>[...S.boards].sort((a,b)=>(a[1].order||0)-(b[1].order||0))[0]?.[0]||null;
 function pickBoard(){const h=hashFam();const want=S.boards.has(h)?h:(S.boards.has(activeBoard)?activeBoard:firstBoard());
   if(want!==activeBoard){activeBoard=want;activeSheet=null}syncBrand()}
@@ -1070,12 +1071,12 @@ function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeB
   // garder le nom à jour
   if(fav){const b=S.boards.get(activeBoard),f=a.find(x=>x.id===activeBoard);if(b&&b.name&&f.name!==b.name){f.name=b.name;try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}}}
   const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
-  document.getElementById('favwrap').style.display=a.length?'':'none';
+  document.getElementById('favwrap').style.display=UI==='view'?'':'none';
   const h=document.getElementById('hfavs');h.innerHTML='';if(a.length){const t=document.createElement('div');t.className='hft';t.textContent='Tes listes favorites';h.appendChild(t);
     const w=document.createElement('div');w.className='hfw';a.forEach(f=>{const x=document.createElement('a');x.href=favUrl(f.id);x.textContent=f.name;x.onclick=()=>hideHome();w.appendChild(x)});h.appendChild(w)}}
 document.getElementById('favstar').onclick=()=>{if(activeBoard)toggleFav(activeBoard)};
 const FVM=document.getElementById('favmenu');
-document.getElementById('favbtn').onclick=e=>{e.stopPropagation();const o=FVM.classList.contains('open');closeMenus();if(o)return;FVM.innerHTML='<div class="mh">Mes listes favorites</div>';
+document.getElementById('favbtn').onclick=e=>{e.stopPropagation();const o=FVM.classList.contains('open');closeMenus();if(o)return;FVM.innerHTML='<div class="mh">Mes listes favorites</div>'+(favs().length?'':'<div class="mnote">Aucune pour l’instant. Clique sur « ☆ Ajouter aux favoris » pour retrouver une liste facilement.</div>');
   favs().forEach(f=>{const r=document.createElement('div');r.className='frow';r.innerHTML=`<button class="go${f.id===activeBoard?' cur':''}"></button><button class="rm" title="Retirer des favoris">×</button>`;
     r.querySelector('.go').textContent=f.name;r.querySelector('.go').onclick=()=>{closeMenus();location.hash=f.id};
     r.querySelector('.rm').onclick=ev=>{ev.stopPropagation();saveFavs(favs().filter(x=>x.id!==f.id));r.remove();if(!favs().length)closeMenus()};FVM.appendChild(r)});

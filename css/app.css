@@ -502,3 +502,10 @@
   #topright #sharemenu{left:auto;right:0;transform:none;top:calc(100% + 8px)}
   body.viewer .dock .sep.view-only{display:none}
   body.stack .dock{display:none}
+
+  /* ---------- notes : typo normale, guillemets couleur d'accent ---------- */
+  .entry .nt{font:italic 400 12.5px/1.45 Inter;color:#4a4540;background:none;box-shadow:none;transform:none;padding:0;margin-top:8px;border-radius:0}
+  .entry .nt::before{content:"“";position:static;display:inline;width:auto;height:auto;background:none;box-shadow:none;transform:none;color:var(--accent);font:700 17px/0 Georgia,serif;font-style:normal;margin-right:2px;vertical-align:-4px}
+  .entry .nt::after{content:"”";color:var(--accent);font:700 17px/0 Georgia,serif;font-style:normal;margin-left:2px;vertical-align:-4px}
+  body:not(.viewer) #favstar{display:none!important}
+  body.viewer .dock .sep{display:none}
