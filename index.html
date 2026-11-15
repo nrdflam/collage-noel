@@ -86,7 +86,7 @@
       <input type="file" id="file" accept="image/*" hidden>
     </div>
     <div class="fields">
-      <div class="urlbox"><label><span class="lab">Remplir depuis un lien <span class="info" tabindex="0">i<span class="tip">Colle l’adresse de la page du produit (Amazon, Fnac, une petite boutique…) : le nom, la marque, le prix et l’image se remplissent tout seuls. Tu peux tout corriger ensuite. Certains sites bloquent la lecture : dans ce cas, remplis à la main.</span></span></span><span class="urlrow"><input id="f_url" placeholder="https://… la page du produit" inputmode="url"><button type="button" class="btn dark" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label><div class="bmhelp">Un site bloque ? <a class="bmlink" href="#">+ Collage</a> <span>← glisse ce bouton dans ta barre de favoris, puis clique dessus depuis n’importe quelle page produit : la fiche se remplit toute seule.</span></div></div>
+      <div class="urlbox"><label><span class="lab">Remplir depuis un lien <span class="info" tabindex="0">i<span class="tip">Colle l’adresse de la page du produit (Amazon, Fnac, une petite boutique…) : le nom, la marque, le prix et l’image se remplissent tout seuls. Tu peux tout corriger ensuite. Certains sites bloquent la lecture : dans ce cas, remplis à la main.</span></span></span><span class="urlrow"><input id="f_url" placeholder="https://… la page du produit" inputmode="url"><button type="button" class="btn dark" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label><button type="button" class="bmopen">✨ Ajouter depuis n’importe quel site</button></div>
       <label>Nom<input id="f_name" required placeholder="Nom de l’objet"></label>
       <div class="row2"><label>Prix<input id="f_price" placeholder="29,99 €" inputmode="decimal"></label><label>Marque<input id="f_brand" placeholder="Marque ou magasin"></label></div>
       <div class="colors"><div class="lab">Couleur <span class="cname" id="f_cname"></span><span class="info" tabindex="0">i<span class="tip">Si l’objet existe en plusieurs couleurs, choisis celle que tu préfères. Elle s’affiche à côté du nom pour tes proches. Clique à nouveau pour enlever. Pour une autre teinte, utilise le rond multicolore et donne-lui un nom.</span></span></div><div id="f_colors"></div><div class="crow"><label class="cpick" title="Choisir une couleur personnalisée"><input type="color" id="f_color_pick" value="#888888"><span></span></label><input id="f_color_other" placeholder="Autre couleur : choisis-la à gauche ou tape son nom"><button type="button" id="f_cclear" title="Enlever la couleur">×</button></div></div>
@@ -129,6 +129,20 @@
       <div class="hfavs" id="hfavs"></div>
     </div></div>
 </div>
+<div id="bminstall"><div class="bmcard">
+  <button type="button" class="bmx" title="Fermer">×</button>
+  <h3>Ajoute tes envies depuis n’importe quel site</h3>
+  <p class="bmsub">Un bouton dans ta barre de favoris. Sur une page produit, un clic et c’est dans ta liste, avec l’image et le prix.</p>
+  <div class="bmdemo">
+    <div class="bmbar"><i></i><i></i><i></i><span class="bmurl">boutique.fr/jouet-en-bois</span></div>
+    <div class="bmfavs"><span class="bmfav">Actus</span><span class="bmfav">Recettes</span><span class="bmslot">dépose ici</span></div>
+    <svg class="bmarrow" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 52C18 30 30 18 48 12"/><path d="M36 10l12 2-4 11"/></svg>
+    <a class="bmlink bmpill" href="#" draggable="true">🎁 Ma liste de Noël</a>
+    <div class="bmhint">Glisse ce bouton vers ta barre de favoris</div>
+  </div>
+  <ol class="bmsteps"><li><b>Glisse</b> le bouton rouge dans ta barre de favoris.<small>Tu ne la vois pas ? <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> (ou <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>B</kbd>)</small></li><li><b>Sur une page produit</b>, clique sur « 🎁 Ma liste de Noël ».</li><li><b>C’est rempli</b> : nom, prix, image, lien. Tu valides, c’est collé.</li></ol>
+  <button type="button" class="btn dark bmok">C’est fait</button>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>

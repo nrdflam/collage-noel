@@ -529,3 +529,36 @@
   .bmhelp .bmlink{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font:600 11.5px Inter;padding:3px 9px;border-radius:999px;cursor:grab;margin-right:2px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
   .bmhelp span{opacity:.85}
   #f_urlst b{font-weight:600}
+
+  /* ---------- bouton « Ma liste de Noël » (favoris) ---------- */
+  .bmopen{margin-top:6px;border:0;background:none;padding:0;color:var(--accent);font:500 12px Inter;cursor:pointer;text-align:left}
+  .bmopen:hover{text-decoration:underline}
+  #f_urlst a.bminl{color:var(--accent);font-weight:600;text-decoration:none}
+  #bminstall{position:fixed;inset:0;z-index:85;display:none;place-items:center;background:rgba(30,25,20,.35);backdrop-filter:blur(4px)}
+  #bminstall.on{display:grid}
+  .bmcard{position:relative;width:min(480px,calc(100vw - 32px));background:#fffdf8;border-radius:20px;padding:28px 28px 22px;box-shadow:0 30px 80px rgba(0,0,0,.25);text-align:center}
+  .bmcard h3{margin:0;font:400 28px/1.1 'Instrument Serif',serif;color:var(--ink)}
+  .bmsub{margin:8px auto 18px;max-width:360px;color:#55504a;font-size:13.5px;line-height:1.5}
+  .bmx{position:absolute;right:14px;top:10px;border:0;background:none;font-size:22px;color:var(--muted);cursor:pointer}
+  .bmdemo{position:relative;background:#f1ede6;border-radius:14px;padding:12px 14px 22px;margin-bottom:18px;overflow:hidden}
+  .bmbar{display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:6px 10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .bmbar i{width:8px;height:8px;border-radius:50%;background:#e2ddd4}
+  .bmurl{margin-left:6px;font:12px Inter;color:var(--muted)}
+  .bmfavs{display:flex;gap:6px;align-items:center;padding:8px 2px 0}
+  .bmfav{font:11.5px Inter;color:#6d675f;background:rgba(255,255,255,.6);border-radius:6px;padding:3px 8px}
+  .bmslot{font:600 11px Inter;color:var(--accent);border:1.5px dashed var(--accent);border-radius:999px;padding:3px 10px;animation:bmpulse 1.6s ease-in-out infinite}
+  @keyframes bmpulse{50%{opacity:.45}}
+  .bmarrow{position:absolute;left:calc(50% + 40px);top:44px;width:54px;height:54px;color:var(--accent);opacity:.8;transform:scaleX(-1) rotate(-8deg)}
+  .bmpill{display:inline-flex;align-items:center;gap:6px;margin-top:30px;background:var(--accent);color:#fff;text-decoration:none;font:600 15px Inter;padding:12px 22px;border-radius:999px;box-shadow:0 8px 20px rgba(229,83,61,.35),0 2px 4px rgba(0,0,0,.1);cursor:grab;transform:rotate(-2deg);transition:transform .2s}
+  .bmpill:hover{transform:rotate(0) scale(1.04)}
+  .bmpill:active{cursor:grabbing}
+  .bmpill.wiggle{animation:bmwig .5s}
+  @keyframes bmwig{20%{transform:rotate(-8deg)}40%{transform:rotate(6deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(2deg)}}
+  .bmhint{margin-top:10px;font:500 12px Inter;color:#7a3a2c}
+  .bmsteps{text-align:left;margin:0 0 18px;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
+  .bmsteps li{counter-increment:s;position:relative;padding-left:34px;font-size:13.5px;line-height:1.45;color:#3d3933}
+  .bmsteps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font:600 11.5px/22px Inter;text-align:center}
+  .bmsteps small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .bmsteps kbd{font:600 10.5px Inter;background:#ece7df;border-radius:4px;padding:1px 5px}
+  .bmok{width:100%;padding:12px!important;font-size:14px!important}
+  @media (hover:none){.bmopen{display:none}}

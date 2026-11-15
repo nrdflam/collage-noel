@@ -842,6 +842,7 @@ function famMenu(){BM.innerHTML='';
   if(MODE==='cloud'&&CAN_WRITE){head('Cette famille');
     item('Inviter quelqu’un à modifier',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
       const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}})}
+  if(EDIT){head('Outils');item('✨ Bouton « Ma liste de Noël » pour ton navigateur',()=>{closeMenus();openInstall()})}
   if(EDIT&&(MODE==='local'||(CAN_WRITE&&FAM&&USER&&FAM.owner===USER.id))){if(MODE==='local')head('Cette famille');item('Supprimer cette famille…',()=>{closeMenus();askDeleteFamily()},'danger')}
   if(HEDIT&&activeBoard==='accueil'){head('Accueil');
     item('<b style="color:var(--accent)">Voir l’accueil avec ces feuilles</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
@@ -947,7 +948,7 @@ async function fillFromUrl(u,forceImg){
   let d=await unfurl(u);if(F!==my)return;
   if(!d||!d.title){const t=slugTitle(u),sn=shopName(u);d={...(d||{}),url:u,title:d?.title||t,site:d?.site||sn,partial:true}}
   if(d.partial&&!d.image){const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};set('f_name',d.title);set('f_brand',d.site);ensureLink(u,d.site);
-    st.className='';st.innerHTML='Ce site bloque la lecture automatique : j’ai mis le nom et la boutique d’après l’adresse. Pour tout remplir (image, prix), utilise le bouton <b>+ Collage</b> depuis la page du produit, ou colle l’image ici.';return}
+    st.className='';st.innerHTML='Ce site ne se laisse pas lire : nom et boutique remplis d’après l’adresse. <a href="#" class="bminl">Tout remplir avec le bouton ✨</a>';st.querySelector('.bminl').onclick=e=>{e.preventDefault();openInstall()};return}
   const set=(id,v)=>{const el=document.getElementById(id);if(v&&!el.value.trim())el.value=v};
   const title=tidy((d.title||'').replace(/\s+/g,' ')).slice(0,90);set('f_name',title);
   const site=(d.site&&!/\./.test(d.site)?d.site:shopName(d.url||u))||hostOf(u);set('f_price',d.price);set('f_brand',site);
@@ -1118,7 +1119,14 @@ document.getElementById('delsel').onclick=deleteSelection;
    (là où les sites ne bloquent pas) et ouvre la liste avec la fiche remplie
    ===================================================================== */
 const BOOKMARKLET='javascript:'+encodeURI("(()=>{const q=s=>document.querySelector(s),m=n=>(q('meta[property=\"'+n+'\"]')||q('meta[name=\"'+n+'\"]'))?.content||'';let ld={};document.querySelectorAll('script[type=\"application/ld+json\"]').forEach(s=>{try{const w=o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o))return o.forEach(w);const t=o['@type'];if((t==='Product'||(Array.isArray(t)&&t.includes('Product')))&&!ld.name)ld=o;w(o['@graph'])};w(JSON.parse(s.textContent))}catch(e){}});const of=(Array.isArray(ld.offers)?ld.offers[0]:ld.offers)||{};let img=q('#landingImage')?.getAttribute('data-old-hires')||m('og:image')||(Array.isArray(ld.image)?ld.image[0]:(ld.image?.url||ld.image))||'';if(typeof img!=='string')img=img?.url||'';if(!img){let b='',a=0;document.querySelectorAll('img').forEach(i=>{const s=i.naturalWidth*i.naturalHeight,r=i.getBoundingClientRect();if(s>a&&i.currentSrc&&r.top<innerHeight*1.5&&r.width>120){a=s;b=i.currentSrc}});img=b}let p=String(of.price||of.lowPrice||m('product:price:amount')||m('og:price:amount')||q('[itemprop=price]')?.getAttribute('content')||'');if(/^\\d+([.,]\\d+)?$/.test(p))p=p.replace('.',',')+' \u20ac';if(!p){const e=q('#corePrice_feature_div .a-offscreen')||q('.a-price .a-offscreen')||q('[itemprop=price]')||q('[class*=\"price\" i]');const t=(e?.textContent||'').match(/\\d[\\d\\s\u202f.,]*\\s?\u20ac|\u20ac\\s?\\d[\\d\\s\u202f.,]*/);p=t?t[0].replace(/\\s+/g,' ').trim():''}const d={u:q('link[rel=canonical]')?.href||location.href,t:String(ld.name||m('og:title')||document.title).trim().slice(0,140),i:img?new URL(img,location.href).href:'',p,s:m('og:site_name')||ld.brand?.name||location.hostname.replace(/^www\\./,'')};open('__BASE__?add='+encodeURIComponent(JSON.stringify(d)),'_blank')})()".replace('__BASE__',PAGE_URL));
-document.querySelectorAll('.bmlink').forEach(a=>{a.href=BOOKMARKLET;a.onclick=e=>{e.preventDefault();toast('Glisse ce bouton dans ta barre de favoris (⌘⇧B pour l’afficher)')}});
+document.querySelectorAll('.bmlink').forEach(a=>{a.href=BOOKMARKLET;a.onclick=e=>{e.preventDefault();a.classList.remove('wiggle');void a.offsetWidth;a.classList.add('wiggle')}});
+const BMI=document.getElementById('bminstall');
+function openInstall(){BMI.classList.add('on')}
+function closeInstall(){BMI.classList.remove('on');try{localStorage.setItem('collage-bm-seen','1')}catch(e){}}
+document.querySelectorAll('.bmopen').forEach(b=>b.onclick=openInstall);
+BMI.querySelector('.bmx').onclick=closeInstall;BMI.querySelector('.bmok').onclick=closeInstall;
+BMI.addEventListener('pointerdown',e=>{if(e.target===BMI)closeInstall()});
+BMI.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeInstall()});
 const PENDING_ADD=(()=>{try{const v=QS.get('add');return v?JSON.parse(v):null}catch(e){return null}})();
 if(PENDING_ADD){const q=new URLSearchParams(location.search);q.delete('add');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}
 function consumeAdd(){if(!PENDING_ADD||consumeAdd.done)return;if(!CAN_WRITE){toast('Connecte-toi pour ajouter cet objet à ta liste');return}consumeAdd.done=true;
