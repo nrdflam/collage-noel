@@ -382,7 +382,7 @@ function renderAll(redraw){
   let prev=null;
   ss.forEach(([id,sh])=>{let el=spreads.get(id);if(!el){el=makeSpread(id);spreads.set(id,el)}updateSpread(el,id,sh);
     const want=prev?prev.nextSibling:stage.firstChild;if(want!==el)stage.insertBefore(el,want);prev=el});
-  let ghost=stage.querySelector('.ghost');if(!ghost){ghost=document.createElement('div');ghost.className='ghost';ghost.title='Ajouter une feuille';ghost.innerHTML=`<div class="gs"><span>${svg.plus}</span></div>`;ghost.onclick=addSheet;stage.appendChild(ghost)}
+  let ghost=stage.querySelector('.ghost');if(!ghost){ghost=document.createElement('div');ghost.className='ghost';ghost.title='Ajouter une liste';ghost.innerHTML=`<div class="gs"><span>${svg.plus}</span></div>`;ghost.onclick=addSheet;stage.appendChild(ghost)}
   ghost.style.display=EDIT?'':'none';
   // pièces
   for(const [id,el] of pieces)if(!S.items.has(id)||!spreads.has(S.items.get(id).sheet)){el.remove();pieces.delete(id);sel.delete(id)}
@@ -492,7 +492,7 @@ function goSheet(d){const ss=sortedSheets().map(s=>s[0]);const i=ss.indexOf(acti
 function renderPager(){const p=document.getElementById('pager'),ss=sortedSheets();p.classList.toggle('show',ss.length>1);if(ss.length<2)return;
   const i=ss.findIndex(s=>s[0]===activeSheet);p.innerHTML='';
   const arr=(t,d,dis)=>{const b=document.createElement('button');b.className='arr';b.textContent=t;b.disabled=dis;b.onclick=()=>goSheet(d);p.appendChild(b)};
-  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Feuille '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>setActive(id);p.appendChild(b)});arr('›',1,i>=ss.length-1)}
+  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Liste '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>setActive(id);p.appendChild(b)});arr('›',1,i>=ss.length-1)}
 let openEntry=null;
 function renderList(sid){
   const box=spreads.get(sid).querySelector('.entries');const its=[...S.items].filter(([,v])=>v.sheet===sid&&(EDIT||!v.ph)).sort((a,b)=>(a[1].n||0)-(b[1].n||0));
@@ -626,7 +626,7 @@ function openForm(id,opt={}){
   if(it&&!it.brand&&it.price){const parts=it.price.split(/\s*·\s*/),pr=parts.filter(x=>/\d/.test(x)&&/€|eur|\$|£/i.test(x)),br=parts.filter(x=>!pr.includes(x));
     document.getElementById('f_price').value=pr.join(' ');document.getElementById('f_brand').value=br.join(' · ')}setColor(it?.color||null);
   document.getElementById('f_links').innerHTML='';(it?.links?.length?it.links:[{}]).forEach(linkRow);
-  dz.innerHTML='<div>Glisse ou colle une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div>';
+  dz.innerHTML='<div>Glisse ou colle une image ici<br>ou clique pour choisir<br><br><small>La découpe suit l’objet toute seule</small></div>';
   if(it)loadImg(it.src).then(im=>{if(F&&F.id===id&&!F.file){dz.innerHTML='';const i=new Image();i.src=im.src;dz.appendChild(i)}}).catch(()=>{});
   document.getElementById('f_url').value=it?.links?.[0]?.url||'';const us=document.getElementById('f_urlst');us.className='';us.textContent=it?'':'Colle un lien : je remplis le nom, le prix et l’image.';
   F.polyN=it?.polyN;syncCutBtn();
@@ -797,7 +797,7 @@ function smartShuffle(sid){
     return res}
   let lo=free/its.length*.05,hi=free/its.length*.95,best=null;
   for(let i=0;i<16;i++){const mid=(lo+hi)/2;let r=null;for(let k=0;k<6&&!r;k++)r=attempt(mid);if(r){best=r;lo=mid}else hi=mid}
-  if(!best){toast('Pas assez de place sur la feuille');return}
+  if(!best){toast('Pas assez de place sur la liste');return}
   // recentrer verticalement le bloc dans l’espace libre
   const minY=Math.min(...best.map(b=>b.cy-b.bh/2)),maxY=Math.max(...best.map(b=>b.cy+b.bh/2)),dy=((top+SH-edge)-(minY+maxY))/2;best.forEach(b=>b.cy+=dy);
   best.forEach(({o,cx,cy,a,dw})=>{
@@ -834,7 +834,7 @@ decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+'
   const el=spreads.get(activeSheet);el&&el.querySelector('.ruling').style.setProperty('--deco',v/100);
   clearTimeout(decoT);decoT=setTimeout(()=>{if(activeSheet)store.setSheet(activeSheet,{deco:v})},350)});
 decor.addEventListener('pointerdown',e=>e.stopPropagation());
-FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>Mode surprise · réservations cachées</button><div class="mnote">Activé : vous ne verrez pas ce que vos proches ont réservé sur cette liste.</div>`;
+FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>Mode surprise · réservations cachées</button><div class="mnote">Activé : tu ne verras pas ce que tes proches ont réservé sur cette liste.</div>`;
 const SETM=document.getElementById('setmenu');
 function syncSet(){const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));

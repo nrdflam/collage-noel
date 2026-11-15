@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🎁%3C/text%3E%3C/svg%3E">
 <title>Collage de Noël</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=202611152350">
+<link rel="stylesheet" href="css/app.css?v=202611152356">
 <style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
@@ -44,22 +45,22 @@
   <button id="delsel" class="edit-only" data-tip="Supprimer la sélection · touche Suppr">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Supprimer</span>
   </button>
-  <button id="shuffle" class="edit-only" data-tip="Mélanger la feuille">
+  <button id="shuffle" class="edit-only" data-tip="Mélanger la liste">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
   </button>
   <div class="sep edit-only"></div>
-  <div class="wrap-rel edit-only"><button id="setbtn" data-tip="Paramètres de la feuille">
+  <div class="wrap-rel edit-only"><button id="setbtn" data-tip="Paramètres de la liste">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
     <div class="menu up setmenu" id="setmenu"><div class="setcol"><div class="mh">Papier</div><div id="papermenu"></div></div><div class="setcol"><div class="mh">Police du titre</div><div id="fontmenu"></div></div></div></div>
-  <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer la feuille">
+  <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer cette liste">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
-    <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette feuille et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
+    <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette liste et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
   <div class="sep edit-only"></div>
   <div class="wrap-rel"><button id="sharebtn" class="share">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Partager</span></button>
     <div class="menu up sharemenu" id="sharemenu">
       <button id="sh_link"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span><b>Copier le lien</b><small>Pour partager en ligne</small></span></button>
-      <button id="sh_png"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span><b>Télécharger l’image</b><small>PNG de la feuille, format A4</small></span></button>
+      <button id="sh_png"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span><b>Télécharger l’image</b><small>PNG de la liste, format A4</small></span></button>
       <button id="sh_copyimg"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span><b>Copier l’image</b><small>À coller dans un message</small></span></button>
       <div class="sec edit-only" style="display:block">Sauvegarde</div>
       <button id="sh_backup" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 19h14"/></svg><span><b>Exporter une sauvegarde</b><small>Fichier .json de toute la famille</small></span></button>
@@ -83,7 +84,7 @@
   <form class="card" id="form" autocomplete="off">
     <h3 id="ftitle">Ajouter un objet</h3>
     <div>
-      <div class="dz" id="dz"><div id="dzt">Glisse une image ici<br>ou clique pour choisir<br><br><small>Un PNG détouré donne la plus jolie découpe</small></div></div>
+      <div class="dz" id="dz"><div id="dzt">Glisse une image ici<br>ou clique pour choisir<br><br><small>La découpe suit l’objet toute seule</small></div></div>
       <input type="file" id="file" accept="image/*" hidden>
       <button type="button" class="cutbtn" id="cutbtn" style="display:none">✂ Découper moi-même</button>
     </div>
@@ -91,11 +92,11 @@
       <div class="urlbox"><label><span class="lab">Remplir depuis un lien <span class="info" tabindex="0">i<span class="tip">Colle l’adresse de la page du produit (Amazon, Fnac, une petite boutique…) : le nom, la marque, le prix et l’image se remplissent tout seuls. Tu peux tout corriger ensuite. Certains sites bloquent la lecture : dans ce cas, remplis à la main.</span></span></span><span class="urlrow"><input id="f_url" placeholder="https://… la page du produit" inputmode="url"><button type="button" class="btn dark" id="f_fetch">Remplir</button></span><small id="f_urlst"></small></label><button type="button" class="bmopen">✨ Ajouter depuis n’importe quel site</button></div>
       <label>Nom<input id="f_name" required placeholder="Nom de l’objet"></label>
       <div class="row2"><label>Prix<input id="f_price" placeholder="29,99 €" inputmode="decimal"></label><label>Marque<input id="f_brand" placeholder="Marque ou magasin"></label></div>
-      <div class="colors"><div class="lab">Couleur <span class="cname" id="f_cname"></span><span class="info" tabindex="0">i<span class="tip">Si l’objet existe en plusieurs couleurs, choisis celle que tu préfères. Elle s’affiche à côté du nom pour tes proches. Clique à nouveau pour enlever. Pour une autre teinte, utilise le rond multicolore et donne-lui un nom.</span></span></div><div id="f_colors"></div><div class="crow"><label class="cpick" title="Choisir une couleur personnalisée"><input type="color" id="f_color_pick" value="#888888"><span></span></label><input id="f_color_other" placeholder="Autre couleur : choisis-la à gauche ou tape son nom"><button type="button" id="f_cclear" title="Enlever la couleur">×</button></div></div>
+      <div class="colors"><div class="lab">Couleur <span class="cname" id="f_cname"></span><span class="info" tabindex="0">i<span class="tip">Si l’objet existe en plusieurs couleurs, choisis celle que tu préfères. Elle s’affiche à côté du nom pour tes proches. Clique à nouveau pour enlever. Pour une autre teinte, utilise le rond multicolore et donne-lui un nom.</span></span></div><div id="f_colors"></div><div class="crow"><label class="cpick" title="Choisir une couleur personnalisée"><input type="color" id="f_color_pick" value="#888888"><span></span></label><input id="f_color_other" placeholder="Autre couleur : tape son nom"><button type="button" id="f_cclear" title="Enlever la couleur">×</button></div></div>
       <label>Petite note<textarea id="f_note" rows="2" placeholder="Taille, âge, version, une précision…"></textarea></label>
       <div class="links"><div class="lab">Où l’acheter <span class="info" tabindex="0">i<span class="tip">Les boutiques où on trouve l’objet. Tes proches verront un bouton par lien, qui ouvre directement la page.</span></span></div><div id="f_links"></div>
         <button type="button" class="addlink" id="addlink">+ Ajouter un lien</button></div>
-      <label><span class="lab">Recherche pré-remplie <span class="info" tabindex="0">i<span class="tip">Tes proches verront deux boutons, « Google Shopping » et « Leboncoin », qui lancent directement une recherche avec ces mots (pour comparer les prix ou trouver d’occasion). Par défaut, c’est le nom de l’objet. Mets des mots plus précis si besoin, ex. « Lego 43292 ».</span></span></span><input id="f_q" placeholder="Par défaut : le nom"></label>
+      <label><span class="lab">Recherche pré-remplie <span class="info" tabindex="0">i<span class="tip">Tes proches verront deux boutons, « Google » et « Leboncoin », qui lancent directement une recherche avec ces mots (pour comparer les prix ou trouver d’occasion). Par défaut, c’est le nom de l’objet. Mets des mots plus précis si besoin, ex. « Lego 43292 ».</span></span></span><input id="f_q" placeholder="Par défaut : le nom"></label>
     </div>
     <div class="actions"><span class="err" id="ferr"></span><button type="button" class="btn danger" id="fdel" style="flex:none">Supprimer</button><span class="sp"></span>
       <button type="button" class="btn" id="fcancel" style="flex:none">Annuler</button><button type="submit" class="btn dark" id="fsave" style="flex:none">Ajouter</button></div>
@@ -107,7 +108,7 @@
   <div class="wlogin"><p>Fais la liste de Noël de ta famille en collage, partage-la et laisse tes proches réserver les cadeaux.</p>
     <form id="loginform"><input type="email" id="lemail" placeholder="ton@email.fr" required autocomplete="email"><button class="btn dark">Recevoir un lien de connexion</button></form>
     <small id="lsent">Pas de mot de passe : tu reçois un lien par mail.</small></div>
-  <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="Famille Dupont" required><button class="btn dark">Créer ma liste</button></form></div>
+  <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="ex. Famille Martin" required><button class="btn dark">Créer ma liste</button></form></div>
   <button type="button" class="wclose" id="wclose">Fermer</button>
 </div></div>
 <div id="confirm" hidden-until-css><div class="ccard">
@@ -152,8 +153,8 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=202611152350"></script>
+<script src="config.js?v=202611152356"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js?v=202611152350"></script>
+<script src="js/app.js?v=202611152356"></script>
 </body>
 </html>

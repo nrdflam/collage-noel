@@ -500,7 +500,7 @@
   #topright #favstar{color:var(--ink)}
   #topright #favstar.on{color:#b07800}
   #topright #sharemenu{left:auto;right:0;transform:none;top:calc(100% + 8px)}
-  body.viewer .dock .sep.view-only{display:none}
+  body.viewer .dock .sep.view-only{display:none!important}
   body.stack .dock{display:none}
 
   /* ---------- notes : typo normale, guillemets couleur d'accent ---------- */
