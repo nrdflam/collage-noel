@@ -4,7 +4,7 @@ Les listes de Noël de la famille, en collage : des images découpées aux cisea
 
 - **Éditer** : ajoute des objets (image glissée, collée, ou un simple lien produit), bouge-les, tourne-les, choisis le papier et la police.
 - **Aperçu** : ce que voient les proches. Les listes en pile, un clic pour en ouvrir une, et « Je réserve ce cadeau ».
-- **Réservations** : cachées à la famille par défaut (surprise), ou visibles. Le réglage est dans le menu « Famille ▾ ».
+- **Réservations** : « mode surprise » par liste (Paramètres) : activé par défaut, la famille ne voit pas ce que ses proches ont réservé sur cette liste.
 - **Familles** : chacune a son lien (`…/#famille-dupont-x7k2`). On se connecte par un lien reçu par mail, sans mot de passe. Pour faire modifier quelqu'un d'autre : « Famille ▾ › Inviter quelqu'un à modifier ».
 
 Sans configuration, la page tourne en **mode local** : démo dans le navigateur, rien n'est partagé.

@@ -137,11 +137,12 @@ create policy it_read on public.items for select using (true);
 drop policy if exists it_write on public.items;
 create policy it_write on public.items for all using (public.is_member(family_id)) with check (public.is_member(family_id));
 
--- réservations : visibles par les invités ; par la famille seulement si elle l'a choisi
+-- réservations : visibles par les invités ; par la famille seulement sur les listes où le « mode surprise » est désactivé
 drop policy if exists res_read on public.reservations;
 create policy res_read on public.reservations for select using (
   not public.is_member(family_id)
-  or (select reserve_mode from public.families f where f.id = family_id) = 'visible');
+  or exists (select 1 from public.items i join public.sheets s on s.id = i.data->>'sheet'
+             where i.id = item_id and coalesce((s.data->>'surprise')::boolean, true) = false));
 
 -- code d'invitation lisible par les membres uniquement
 create or replace function public.invite_code(fid text) returns text

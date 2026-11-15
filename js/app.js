@@ -167,7 +167,8 @@ async function unreserve(itemId){
   if(MODE==='cloud'){const {data}=await SB.rpc('cancel_reservation',{rid:m.id,sec:m.secret});if(!data)toast('Annulation impossible')}
   delete o[itemId];saveMyRes(o);S.res.delete(itemId);saveLocal();await loadRes();renderAll()}
 setInterval(()=>{if(MODE==='cloud'&&document.visibilityState==='visible'&&!EDIT)loadRes().then(()=>syncReserved())},25000);
-const resShown=id=>S.res.has(id)&&(MODE==='cloud'||!CAN_WRITE||(S.boards.get(activeBoard)?.reserve_mode==='visible'));
+const surpriseOn=sid=>S.sheets.get(sid)?.surprise!==false; // mode surprise : actif par défaut
+const resShown=id=>S.res.has(id)&&(MODE==='cloud'||!CAN_WRITE||!surpriseOn(S.items.get(id)?.sheet));
 function syncReserved(){pieces.forEach((el,k)=>el.classList.toggle('reserved',resShown(k)))}
 
 /* ---------- modes et familles ---------- */
@@ -744,21 +745,21 @@ decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+'
   const el=spreads.get(activeSheet);el&&el.querySelector('.ruling').style.setProperty('--deco',v/100);
   clearTimeout(decoT);decoT=setTimeout(()=>{if(activeSheet)store.setSheet(activeSheet,{deco:v})},350)});
 decor.addEventListener('pointerdown',e=>e.stopPropagation());
-FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>La famille les voit</button><div class="mnote">Désactivé : la famille ne voit pas ce que ses proches ont réservé (surprise). Vaut pour toute la famille.</div>`;
+FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>Mode surprise · réservations cachées</button><div class="mnote">Activé : vous ne verrez pas ce que vos proches ont réservé sur cette liste.</div>`;
 const SETM=document.getElementById('setmenu');
 function syncSet(){const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
   SETM.querySelector('[data-outline] .tg')?.classList.toggle('on',!!sh.outline);
-  SETM.querySelector('[data-resvis] .tg')?.classList.toggle('on',(S.boards.get(activeBoard)?.reserve_mode)==='visible');
+  SETM.querySelector('[data-resvis] .tg')?.classList.toggle('on',surpriseOn(activeSheet));
   FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco()}
 function openMenu(m){const o=m.classList.contains('open');closeMenus();if(o)return;const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
-  FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncDeco();m.classList.add('open')}
+  FM.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('cur',b.dataset.f===(sh.font||'Caveat')));syncSet();m.classList.add('open')}
 document.getElementById('setbtn').onclick=e=>{e.stopPropagation();openMenu(SETM)};
 SETM.addEventListener('pointerdown',e=>e.stopPropagation());
 document.getElementById('delbtn').onclick=e=>{e.stopPropagation();openMenu(DM)};
 PM.onclick=e=>{const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});syncSet()}};
-FM.onclick=e=>{if(e.target.closest('[data-resvis]')&&activeBoard){const vis=(S.boards.get(activeBoard)?.reserve_mode)==='visible';store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});syncSet();if(MODE==='cloud')setTimeout(()=>loadRes().then(()=>renderAll()),900);return}
+FM.onclick=e=>{if(e.target.closest('[data-resvis]')&&activeSheet){const on=surpriseOn(activeSheet);store.setSheet(activeSheet,{surprise:!on});syncSet();toast(on?'Mode surprise désactivé : tu vois les réservations de cette liste':'Mode surprise activé : réservations cachées sur cette liste');if(MODE==='cloud')setTimeout(()=>loadRes().then(()=>renderAll()),900);return}
   if(e.target.closest('[data-outline]')&&activeSheet){store.setSheet(activeSheet,{outline:!S.sheets.get(activeSheet)?.outline});syncSet();return}
   const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});syncSet()}};
 DM.querySelector('[data-no]').onclick=closeMenus;DM.querySelector('[data-yes]').onclick=()=>{closeMenus();if(!activeSheet)return;const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet),next=ss[i+1]||ss[i-1]||null;store.delSheet(activeSheet);if(next)setActive(next)};
@@ -831,14 +832,9 @@ function famMenu(){BM.innerHTML='';
   if(fams.length>1||MODE==='cloud'){head('Mes familles');fams.forEach(([id,b])=>item(esc(b.name||'Sans nom'),()=>{closeMenus();if(MODE==='cloud')location.hash=id;else{location.hash=id;pickBoard();renderAll()}},id===activeBoard?'cur':''))}
   item('<b style="color:var(--accent)">+ Nouvelle famille</b>',()=>{closeMenus();MODE==='cloud'?createFamily('Nouvelle famille'):newBoard('Nouvelle famille')});
   const b=S.boards.get(activeBoard)||{};
-  if(CAN_WRITE&&EDIT&&MODE==='local'){head('Réservations');const vis=(b.reserve_mode||'hidden')==='visible';
-    item(`<span class="tg ${vis?'on':''}"></span>La famille voit les réservations`,()=>{store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});closeMenus();toast(vis?'Réservations cachées à la famille : surprise garantie':'Réservations visibles par la famille')})}
   if(MODE==='cloud'&&CAN_WRITE){head('Cette famille');
     item('Inviter quelqu’un à modifier',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
-      const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}});
-    const vis=(b.reserve_mode||'hidden')==='visible';
-    item(`<span class="tg ${vis?'on':''}"></span>La famille voit les réservations`,()=>{store.setBoard(activeBoard,{reserve_mode:vis?'hidden':'visible'});closeMenus();
-      toast(vis?'Réservations cachées à la famille : surprise garantie':'Réservations visibles par la famille');setTimeout(()=>loadRes().then(()=>renderAll()),900)})}
+      const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}})}
   if(EDIT&&(MODE==='local'||(CAN_WRITE&&FAM&&USER&&FAM.owner===USER.id))){if(MODE==='local')head('Cette famille');item('Supprimer cette famille…',()=>{closeMenus();askDeleteFamily()},'danger')}
   if(HEDIT&&activeBoard==='accueil'){head('Accueil');
     item('<b style="color:var(--accent)">Voir l’accueil avec ces feuilles</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
