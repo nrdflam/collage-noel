@@ -662,10 +662,17 @@ function removeFlatBackground(c,W,H){
   const med=ch=>{const v=border.map(p=>d[p*4+ch]).sort((x,y)=>x-y);return v[v.length>>1]};const br=med(0),bg=med(1),bb=med(2);
   const dist=p=>Math.hypot(d[p*4]-br,d[p*4+1]-bg,d[p*4+2]-bb);
   if(border.filter(p=>dist(p)<26).length/border.length<.6)return false; // bords pas uniformes : vraie photo
-  const bgm=new Uint8Array(w*h),st=[];border.forEach(p=>{if(dist(p)<34&&!bgm[p]){bgm[p]=1;st.push(p)}});
+  // remplissage depuis les bords, tolérance serrée (sinon il se faufile dans les zones claires de l'objet)
+  const bgm=new Uint8Array(w*h),st=[];border.forEach(p=>{if(dist(p)<30&&!bgm[p]){bgm[p]=1;st.push(p)}});
   while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;
-    for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,y>0?p-w:-1,y<h-1?p+w:-1]){if(q<0||bgm[q])continue;
-      if(dist(q)<34||(Math.hypot(d[q*4]-d[p*4],d[q*4+1]-d[p*4+1],d[q*4+2]-d[p*4+2])<7&&dist(q)<60)){bgm[q]=1;st.push(q)}}}
+    for(const q of [x>0?p-1:-1,x<w-1?p+1:-1,y>0?p-w:-1,y<h-1?p+w:-1]){if(q<0||bgm[q])continue;if(dist(q)<30){bgm[q]=1;st.push(q)}}}
+  // lissage : on rebouche les « morsures » étroites dans l'objet (fermeture morphologique)
+  {const R=Math.max(3,Math.round(Math.max(w,h)*.04)),fg=new Uint8Array(w*h);for(let i=0;i<fg.length;i++)fg[i]=bgm[i]?0:1;
+   const dt=(src,val)=>{const D=new Float32Array(w*h);for(let i=0;i<D.length;i++)D[i]=src[i]===val?0:1e9;
+     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;let v=D[i];if(x>0)v=Math.min(v,D[i-1]+1);if(y>0){v=Math.min(v,D[i-w]+1);if(x>0)v=Math.min(v,D[i-w-1]+1.414);if(x<w-1)v=Math.min(v,D[i-w+1]+1.414)}D[i]=v}
+     for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;let v=D[i];if(x<w-1)v=Math.min(v,D[i+1]+1);if(y<h-1){v=Math.min(v,D[i+w]+1);if(x<w-1)v=Math.min(v,D[i+w+1]+1.414);if(x>0)v=Math.min(v,D[i+w-1]+1.414)}D[i]=v}return D};
+   const d1=dt(fg,1),dil=new Uint8Array(w*h);for(let i=0;i<dil.length;i++)dil[i]=d1[i]<=R?1:0;
+   const d2=dt(dil,0);for(let i=0;i<bgm.length;i++)if(d2[i]>R)bgm[i]=0}
   let n=0;for(let i=0;i<bgm.length;i++)n+=bgm[i];const fg=1-n/bgm.length;
   if(fg<.05||fg>.9)return false;
   // masque (objet opaque, légèrement épaissi) appliqué à l'image en pleine taille
