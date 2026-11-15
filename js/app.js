@@ -353,7 +353,7 @@ function placePiece(el,it){const w=it.w*(el._scale||1);el.style.left=(it.x-w/2)+
 const stage=document.getElementById('stage');
 const spreads=new Map(),pieces=new Map(),entries=new Map();
 let activeSheet=null;
-const svg={grip:'<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+const svg={cart:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1l1.6-6.3H6.2"/></svg>',loupe:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/></svg>',grip:'<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
   paper:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
   font:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9.5 5h1L16 19M6.3 14h7.4M17 10.5c.7-.6 1.6-1 2.5-1 1.5 0 2.5.9 2.5 2.5V19M22 15.5c-.8-.6-1.7-.8-2.7-.8-1.5 0-2.8.8-2.8 2.2s1.1 2.1 2.5 2.1c1.3 0 2.4-.8 3-2"/></svg>',
   trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
@@ -497,8 +497,8 @@ function renderList(sid){
     if(it.price||it.brand)d.querySelector('.pr').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
     if(it.color){const co=d.querySelector('.co');co.querySelector('span').textContent=it.color.n;const dot=co.querySelector('i');if(it.color.h)dot.style.background=it.color.h;else dot.classList.add('any')}if(it.note)d.querySelector('.nt').textContent=it.note;
     const lk=d.querySelector('.lk');
-    (it.links||[]).forEach(l=>{if(!/^https?:\/\//i.test(l.url||''))return;const a=document.createElement('a');a.href=l.url;a.target='_blank';a.rel='noopener';a.textContent=(l.label||hostOf(l.url))+' ↗';lk.appendChild(a)});
-    if(q){[['Google Shopping','https://www.google.com/search?tbm=shop&q='],['Leboncoin','https://www.leboncoin.fr/recherche?text=']].forEach(([l,u])=>{const a=document.createElement('a');a.className='s';a.href=u+enc(q);a.target='_blank';a.rel='noopener';a.textContent=l;lk.appendChild(a)})}
+    (it.links||[]).forEach(l=>{if(!/^https?:\/\//i.test(l.url||''))return;const a=document.createElement('a');a.className='buy';a.href=l.url;a.target='_blank';a.rel='noopener';a.innerHTML=svg.cart+'<span></span>';a.querySelector('span').textContent=l.label||hostOf(l.url);lk.appendChild(a)});
+    if(q){[['Google','https://www.google.com/search?q='],['Leboncoin','https://www.leboncoin.fr/recherche?text=']].forEach(([l,u])=>{const a=document.createElement('a');a.className='s';a.href=u+enc(q);a.target='_blank';a.rel='noopener';a.title='Rechercher « '+q+' » sur '+l;a.innerHTML=svg.loupe+'<span>'+l+'</span>';lk.appendChild(a)})}
     d.addEventListener('mouseenter',()=>hover(id,true));d.addEventListener('mouseleave',()=>hover(id,false));
     d.addEventListener('click',e=>{if(e.target.closest('a,.ed,.rsv'))return;setOpen(openEntry===id?null:id)});
     const ed=d.querySelector('.ed');if(ed)ed.onclick=()=>openForm(id);
@@ -940,9 +940,14 @@ const COLORS=[['Rouge','#e2393b'],['Rose','#f48fb1'],['Orange','#f57c2b'],['Jaun
 const FC=document.getElementById('f_colors'),FCO=document.getElementById('f_color_other');
 FC.innerHTML=COLORS.map(([n,h])=>`<button type="button" class="sw" data-n="${n}" data-h="${h}" title="${n}" style="--c:${h}"></button>`).join('')+'<span class="cname" id="f_cname"></span>';
 function setColor(c){if(F)F.color=c;FC.querySelectorAll('.sw').forEach(b=>b.classList.toggle('cur',!!c&&b.dataset.n===c.n));
-  const known=c&&COLORS.some(x=>x[0]===c.n);FCO.value=c&&!known?c.n:'';document.getElementById('f_cname').textContent=known?c.n:''}
+  const known=c&&COLORS.some(x=>x[0]===c.n),fcp=document.getElementById('f_color_pick');FCO.value=c&&!known&&c.n!=='Couleur perso'?c.n:'';document.getElementById('f_cname').textContent=known?c.n:'';
+  if(c&&!known&&c.h){fcp.value=c.h;fcp.dataset.set='1';fcp.parentNode.classList.add('set');fcp.parentNode.style.setProperty('--pc',c.h)}else{delete fcp.dataset.set;fcp.value='#888888';fcp.parentNode.classList.remove('set')}}
 FC.onclick=e=>{const b=e.target.closest('.sw');if(!b)return;setColor(F?.color?.n===b.dataset.n?null:{n:b.dataset.n,h:b.dataset.h})};
-FCO.addEventListener('input',()=>{const v=FCO.value.trim();if(F)F.color=v?{n:v,h:null}:null;FC.querySelectorAll('.sw').forEach(b=>b.classList.remove('cur'));document.getElementById('f_cname').textContent=''});
+const FCP=document.getElementById('f_color_pick');
+function customColor(){const v=FCO.value.trim(),h=FCP.dataset.set?FCP.value:null;if(F)F.color=(v||h)?{n:v||'Couleur perso',h}:null;
+  FC.querySelectorAll('.sw').forEach(b=>b.classList.remove('cur'));document.getElementById('f_cname').textContent='';FCP.parentNode.classList.toggle('set',!!h);if(h)FCP.parentNode.style.setProperty('--pc',h)}
+FCO.addEventListener('input',customColor);
+FCP.addEventListener('input',()=>{FCP.dataset.set='1';customColor()});
 document.getElementById('f_fetch').onclick=()=>fillFromUrl(document.getElementById('f_url').value,true);
 document.getElementById('f_url').addEventListener('paste',e=>{const t=e.clipboardData?.getData('text/plain')||'';if(/^\s*https?:\/\/\S+\s*$/.test(t)){e.preventDefault();e.stopPropagation();fillFromUrl(t,true)}});
 document.getElementById('f_url').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fillFromUrl(e.target.value,true)}});
