@@ -232,10 +232,11 @@ function srcURL(src){if(src.startsWith('builtin:ph'))return phImage(src.slice(8)
    clé : builtin:ph-<forme>-<couleur>
    ===================================================================== */
 const STK_COLORS={rose:'#f585b6',bleu:'#1f55e0',orange:'#f8692c',jaune:'#f6c62a',vert:'#13a65e',violet:'#5c2ac2',lilas:'#a99af0',rouge:'#ee2c3c',menthe:'#6dd8b4'};
-const STK_SHAPES=['blob','fleur','eclat','etoile','arche','vague','trefle','galet','coussin','triangle','cacahuete','demi'];
+const STK_SHAPES=['blob','fleur','eclat','etoile','arche','vague','trefle','galet','coussin','cacahuete','goutte','nuage','demi'];
 const STK_W=640,STK_H=480;
 function stkPoly(shape,seed){const R=rng(seed),cx=STK_W/2,cy=STK_H/2,pts=[],N=160;
-  const polar=f=>{for(let i=0;i<N;i++){const t=i/N*Math.PI*2,r=f(t);pts.push([cx+Math.cos(t)*r,cy+Math.sin(t)*r*.92])}return pts};
+  const q1=R()*6,q2=R()*6,wob=t=>1+.035*Math.sin(2*t+q1)+.025*Math.sin(3*t+q2);
+  const polar=f=>{for(let i=0;i<N;i++){const t=i/N*Math.PI*2,r=f(t)*wob(t);pts.push([cx+Math.cos(t)*r,cy+Math.sin(t)*r*.92])}return pts};
   const p1=R()*6,p2=R()*6;
   switch(shape){
     case 'blob':return polar(t=>165*(1+.16*Math.sin(2*t+p1)+.1*Math.sin(3*t+p2)+.05*Math.sin(5*t+p1)));
@@ -245,7 +246,8 @@ function stkPoly(shape,seed){const R=rng(seed),cx=STK_W/2,cy=STK_H/2,pts=[],N=16
     case 'trefle':return polar(t=>110+62*Math.pow(Math.abs(Math.cos(2*t+Math.PI/4)),1.3));
     case 'galet':return polar(t=>{const a=Math.cos(t),b=Math.sin(t);return 175/Math.pow(Math.pow(Math.abs(a),3.2)+Math.pow(Math.abs(b*1.35),3.2),1/3.2)*(1+.05*Math.sin(3*t+p1))});
     case 'coussin':return polar(t=>165*(1-.2*Math.pow(Math.abs(Math.cos(2*t)),2))/Math.pow(Math.pow(Math.abs(Math.cos(t)),4)+Math.pow(Math.abs(Math.sin(t)),4),.25));
-    case 'triangle':return polar(t=>{const k=3,u=((t+p1)%(2*Math.PI/k))-Math.PI/k;return 112/Math.cos(u)*.98+0*u}).map(([x,y])=>[x,y]).filter((_,i)=>true).map(([x,y])=>{const dx=x-cx,dy=y-cy,d=Math.hypot(dx,dy),m=Math.min(d,178);return [cx+dx/d*m,cy+dy/d*m]});
+    case 'goutte':return polar(t=>150*(1+.32*Math.cos(t+p1))*(1-.08*Math.cos(2*t)));
+    case 'nuage':return polar(t=>140*(1+.12*Math.cos(4*t+p1)+.08*Math.cos(t+p2)));
     case 'cacahuete':return polar(t=>165*(.68+.32*Math.pow(Math.abs(Math.cos(t+p1*.1)),1.4)));
     case 'arche':{const o=170,i=88,yb=cy+120;for(let k=0;k<=60;k++){const t=Math.PI+k/60*Math.PI;pts.push([cx+Math.cos(t)*o,yb+Math.sin(t)*o*1.05])}
       pts.push([cx+o,yb],[cx+i,yb]);for(let k=60;k>=0;k--){const t=Math.PI+k/60*Math.PI;pts.push([cx+Math.cos(t)*i,yb+Math.sin(t)*i*1.05])}pts.push([cx-i,yb]);return pts}
@@ -270,9 +272,26 @@ function phImage(k){if(phCache[k])return phCache[k];const d=parsePH(k),c=documen
   return phCache[k]=c.toDataURL('image/png')}
 function randomStickers(n,seed){const R=rng(seed),sh=STK_SHAPES.slice().sort(()=>R()-.5),cs=Object.keys(STK_COLORS).sort(()=>R()-.5);
   return Array.from({length:n},(_,i)=>`ph-${sh[i%sh.length]}-${cs[i%cs.length]}-${Math.floor(R()*900)}`)}
-const PH_NAMES=['Exemple : un livre','Exemple : un jeu','Exemple : un vêtement','Exemple : une sortie'];
-function addPlaceholders(sid){const pos=[[30,33,-6],[70,36,7],[32,70,4],[69,73,-5]],keys=randomStickers(4,Date.now()%100000);
-  keys.forEach((k,i)=>store.setItem('i'+uid(),{sheet:sid,ph:true,n:i+1,name:PH_NAMES[i],price:'',note:'Remplace-moi avec « Modifier », ou supprime-moi.',links:[],q:'',src:'builtin:'+k,x:pos[i][0],y:pos[i][1],w:42,a:pos[i][2],z:i+1,seed:4000+i*131},true));renderAll()}
+const PH_NAMES=['Exemple : un livre','Exemple : un jeu','Exemple : un vêtement','Exemple : une sortie','Exemple : une surprise','Exemple : un doudou','Exemple : une gourmandise'];
+/* taille visuelle d'un sticker (demi-largeur / demi-hauteur, en % de la largeur de feuille) */
+function stkBox(key,w){const P=phPoly(key);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
+  const m=S.cfg.margin*2;return{rw:(x1-x0+m)/STK_W*w/2,rh:(y1-y0+m)/STK_W*w/2}}
+/* tas de stickers serrés, sans grille : chacun vient se coller aux précédents */
+function packStickers(keys,widths,zone,A,seed){const R=rng(seed);
+  const it=keys.map((k,i)=>({k,w:widths[i],...stkBox(k,widths[i])})).sort((a,b)=>b.w-a.w),out=[];
+  const cx=(zone.x0+zone.x1)/2,cy=(zone.y0+zone.y1)/2*A;
+  for(const o of it){let best=null;
+    for(let t=0;t<900;t++){const x=zone.x0+o.rw+R()*Math.max(0,zone.x1-zone.x0-2*o.rw),y=(zone.y0*A+o.rh)+R()*Math.max(0,(zone.y1-zone.y0)*A-2*o.rh);
+      let ok=true,near=1e9;
+      for(const p of out){const d=Math.hypot((x-p.x)/(o.rw+p.rw),(y-p.y)/(o.rh+p.rh));if(d<.84){ok=false;break}near=Math.min(near,d)}
+      if(!ok)continue;const sc=(out.length?Math.abs(near-.88)*3:0)+Math.hypot((x-cx)/50,(y-cy)/50)*.18+R()*.12;
+      if(!best||sc<best.sc)best={x,y,sc}}
+    if(!best)best={x:cx+(R()-.5)*30,y:cy+(R()-.5)*30};out.push({...o,x:best.x,y:best.y})}
+  return out.map(o=>({k:o.k,w:o.w,x:o.x,y:o.y/A}))}
+function addPlaceholders(sid){const n=7,keys=randomStickers(n,Date.now()%100000),R=rng(Date.now()%9973);
+  const widths=keys.map((k,i)=>[86,76,70,64,58,52,46][i]*(.9+R()*.2));
+  packStickers(keys,widths,{x0:4,x1:96,y0:19,y1:97},297/210,Date.now()%7919)
+    .forEach((o,i)=>store.setItem('i'+uid(),{sheet:sid,ph:true,n:i+1,name:PH_NAMES[i%PH_NAMES.length],price:'',note:'Remplace-moi avec « Modifier », ou supprime-moi.',links:[],q:'',src:'builtin:'+o.k,x:o.x,y:o.y,w:o.w,a:Math.round(R()*24-12),z:i+1,seed:4000+i*131},true));renderAll()}
 function loadImg(src){if(!imgCache.has(src))imgCache.set(src,new Promise((res,rej)=>{const i=new Image();if(/^https?:/.test(srcURL(src)))i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=srcURL(src)}));return imgCache.get(src)}
 function itemPoly(it,im){
   if(it.src.startsWith('builtin:ph'))return phPoly(it.src.slice(8));
@@ -284,6 +303,7 @@ async function drawPiece(id,el,force){
   const key=[it.src,it.seed,JSON.stringify(S.cfg),DEBUG].join('|');if(!force&&el._key===key)return;el._key=key;
   let im;try{im=await loadImg(it.src)}catch(e){return}
   const W=im.naturalWidth,H=im.naturalHeight,P=itemPoly(it,im);
+  if(it.src.startsWith('builtin:ph')){const r=stickerInto(el.querySelector('canvas'),im,P);el._num=r.num;el._scale=r.scale;placePiece(el,it);return}
   const M=getMask(it.src,im,P,!!it.alpha,S.cfg.margin);
   const V=cutPath(P,M,W,H,it.seed||1);
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;V.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
@@ -931,12 +951,14 @@ document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const 
   if(error){m.className='err';m.textContent='Erreur : '+error.message}else m.textContent='C’est envoyé ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
 HOME.querySelector('.hdemo').onclick=e=>{if(MODE==='cloud'){e.preventDefault();toast('L’exemple arrive bientôt')}};
 // stickers découpés (sans passer par les objets de la page)
-async function drawSticker(c,key,seed){const src='builtin:'+key,im=await loadImg(src),P=phPoly(key),M=getMask(src,im,P,false,S.cfg.margin),V=cutPath(P,M,im.naturalWidth,im.naturalHeight,seed);
-  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;V.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
-  const pad=12,cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
-  const path=()=>{g.beginPath();V.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath()};
-  g.save();g.shadowColor='rgba(40,25,10,.32)';g.shadowBlur=4;g.shadowOffsetX=1;g.shadowOffsetY=2;path();g.fillStyle='#fff';g.fill();g.restore();
-  g.save();path();g.clip();g.drawImage(im,pad-x0,pad-y0);g.restore();return cw/im.naturalWidth}
+function stickerInto(c,im,P){const m=S.cfg.margin,pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
+  const cw=Math.ceil(x1-x0)+pad*2,ch=Math.ceil(y1-y0)+pad*2;c.width=cw;c.height=ch;const g=c.getContext('2d');
+  const path=()=>{g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0]-x0+pad,p[1]-y0+pad):g.moveTo(p[0]-x0+pad,p[1]-y0+pad));g.closePath()};
+  g.save();g.shadowColor='rgba(40,25,10,.30)';g.shadowBlur=Math.max(3,S.cfg.shadow*1.3);g.shadowOffsetX=1;g.shadowOffsetY=2;g.lineJoin='round';g.lineWidth=m*2;g.strokeStyle='#fff';g.fillStyle='#fff';path();g.fill();g.stroke();g.restore();
+  g.drawImage(im,pad-x0,pad-y0);
+  const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
+  return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
+async function drawSticker(c,key,seed){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key)).scale}
 function placeSticker(parent,key,x,y,w,a,seed){const c=document.createElement('canvas');c.style.left=x+'%';c.style.top=y+'%';parent.appendChild(c);
   drawSticker(c,key,seed).then(sc=>{c.style.width=(w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${a}deg)`}).catch(()=>c.remove())}
 function buildHome(){
@@ -945,13 +967,15 @@ function buildHome(){
   [['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
     .forEach(([k,x,y,w,a],i)=>placeSticker(st,k,x,y,w,a,300+i*17));
   const EX=[
-    {side:'hl',dx:-104,dy:-50,r:-7,title:'La liste de Lou',font:'Caveat',fs:1.15,paper:'quad',st:[['blob-rose',28,32],['etoile-jaune',72,30],['arche-vert',30,62],['triangle-bleu',70,64],['cacahuete-orange',50,86]]},
-    {side:'hl',dx:-38,dy:-44,r:4,title:'Mamie Jo',font:'Fraunces',fs:1,paper:'lines',st:[['coussin-menthe',30,34],['fleur-violet',70,38],['demi-orange',34,70],['vague-rouge',68,74]]},
-    {side:'hr',dx:-62,dy:-52,r:6,title:'Les envies de Sacha',font:'Permanent Marker',fs:.85,paper:'dots',st:[['eclat-rouge',30,36],['galet-jaune',70,34],['trefle-lilas',32,68],['blob-bleu',70,70]]},
-    {side:'hr',dx:4,dy:-46,r:-5,title:'Papa (vraiment)',font:'Instrument Serif',fs:1.1,paper:'kraft',st:[['etoile-vert',30,34],['coussin-rose',70,36],['fleur-orange',32,70],['triangle-violet',70,68]]}];
+    {side:'hl',dx:-104,dy:-50,r:-7,title:'La liste de Lou',font:'Caveat',fs:1.15,paper:'quad',st:[['blob-rose',28,32],['etoile-jaune',72,30],['arche-vert',30,62],['goutte-bleu',70,64],['nuage-lilas',50,50],['cacahuete-orange',50,86]]},
+    {side:'hl',dx:-38,dy:-44,r:4,title:'Mamie Jo',font:'Fraunces',fs:1,paper:'lines',st:[['coussin-menthe',30,34],['fleur-violet',70,38],['demi-orange',34,70],['vague-rouge',68,74],['eclat-jaune',50,50]]},
+    {side:'hr',dx:-62,dy:-52,r:6,title:'Les envies de Sacha',font:'Permanent Marker',fs:.85,paper:'dots',st:[['eclat-rouge',30,36],['galet-jaune',70,34],['trefle-lilas',32,68],['blob-bleu',70,70],['cacahuete-menthe',50,50]]},
+    {side:'hr',dx:4,dy:-46,r:-5,title:'Papa (vraiment)',font:'Instrument Serif',fs:1.1,paper:'kraft',st:[['etoile-vert',30,34],['coussin-rose',70,36],['fleur-orange',32,70],['goutte-violet',70,68],['vague-bleu',50,50]]}];
   EX.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';
     d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';
     d.innerHTML=`<div class="paper p-${e.paper}"></div><div class="ruling r-${e.paper}" style="--deco:.4"></div><h2></h2>`;
     const h=d.querySelector('h2');h.textContent=e.title;h.style.fontFamily=`'${e.font}'`;h.style.fontSize=(8*e.fs)+'cqw';
-    host.appendChild(d);e.st.forEach(([k,x,y],j)=>placeSticker(d,'ph-'+k+'-'+(i*7+j*13),x,y,40,(j%2?1:-1)*(4+j*3),500+i*31+j*7))})}
+    host.appendChild(d);const keys=e.st.map(([k],j)=>'ph-'+k+'-'+(i*7+j*13)),R=rng(77+i*13);
+    packStickers(keys,keys.map((_,j)=>[84,74,68,62,56,50][j]*(.9+R()*.2)),{x0:3,x1:97,y0:16,y1:97},297/210,900+i*37)
+      .forEach(o=>placeSticker(d,o.k,o.x,o.y,o.w,Math.round(R()*26-13),0))})}
 boot();
