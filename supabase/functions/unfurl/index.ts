@@ -25,7 +25,8 @@ function okUrl(u: string | null): URL | null {
 
 const dec = (s = "") =>
   s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<")
-   .replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim();
+   .replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+   .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim();
 
 function meta(html: string, keys: string[]): string {
   for (const k of keys) {
@@ -98,10 +99,14 @@ Deno.serve(async (req) => {
 
   let image = (typeof pImg === "string" ? pImg : pImg?.url) ||
     meta(html, ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"]);
-  if (!image) image = html.match(/id=["']landingImage["'][^>]*data-old-hires=["']([^"']+)/i)?.[1] ?? ""; // Amazon
+  // Amazon : pas d'og:image, l'image est dans le code de la page
+  if (!image) image = html.match(/data-old-hires=["'](https:[^"']+)["']/i)?.[1] ??
+    html.match(/"hiRes":"(https:[^"]+)"/)?.[1] ?? html.match(/"large":"(https:\/\/m\.media-amazon\.com[^"]+)"/)?.[1] ??
+    html.match(/data-a-dynamic-image=["']\{&quot;(https:[^&]+)&quot;/i)?.[1] ?? "";
   if (image) { try { image = new URL(image, base).href; } catch { image = ""; } }
 
-  const price = fmtPrice(offer?.price ?? offer?.lowPrice, offer?.priceCurrency) ||
+  const amz = html.match(/class=["']a-offscreen["']>\s*([\d\s\u202f.,]+)\s*€/i)?.[1]?.replace(/[\s\u202f.]/g, "").replace(",", ".");
+  const price = fmtPrice(offer?.price ?? offer?.lowPrice, offer?.priceCurrency) || fmtPrice(amz) ||
     fmtPrice(meta(html, ["product:price:amount", "og:price:amount", "price"]), meta(html, ["product:price:currency", "og:price:currency"]) || "EUR");
 
   const site = meta(html, ["og:site_name"]) || (p?.brand?.name ?? "") || new URL(base).hostname.replace(/^www\./, "");
