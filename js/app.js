@@ -974,23 +974,86 @@ function stickerInto(c,im,P,flat){const m=flat?0:S.cfg.margin,pad=m+10;let x0=1e
   const tl=P.reduce((b,p)=>(p[0]+p[1]<b[0]+b[1]?p:b),P[0]);
   return{scale:cw/im.naturalWidth,num:{x:(tl[0]-x0+pad)/cw*100,y:(tl[1]-y0+pad)/ch*100}}}
 async function drawSticker(c,key,flat){const im=await loadImg('builtin:'+key);return stickerInto(c,im,phPoly(key),flat).scale}
-function placeSticker(parent,key,x,y,w,a,flat){const c=document.createElement('canvas');c.style.left=x+'%';c.style.top=y+'%';parent.appendChild(c);
-  drawSticker(c,key,flat).then(sc=>{c.style.width=(w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${a}deg)`}).catch(()=>c.remove())}
+/* ---------- mise en page de l'accueil : une donnée, éditable avec ?edithome ---------- */
+const HOME_LAYOUT=null; // fixée ici une fois la mise en page validée
+const HKEY='collage-home-layout',HEDIT=new URLSearchParams(location.search).has('edithome');
+function defaultHomeLayout(){
+  const L={center:[['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
+    .map(([k,x,y,w,a])=>({k,x,y,w,a,flat:false})),sheets:[]};
+  [{side:'hl',dx:-104,dy:-50,r:-7,paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},
+   {side:'hl',dx:-38,dy:-44,r:4,paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},
+   {side:'hr',dx:-62,dy:-52,r:6,paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},
+   {side:'hr',dx:4,dy:-46,r:-5,paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}].forEach(e=>{
+    const R=rng(e.seed),keys=randomStickers(e.n,e.seed*101),widths=keys.map((_,j)=>e.sizes[j%e.sizes.length]*(.85+R()*.3));
+    const st=packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
+      .map(o=>({k:o.k,x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a,flat:e.flat}));
+    L.sheets.push({side:e.side,dx:e.dx,dy:e.dy,r:e.r,paper:e.paper,st})});
+  return L}
+function homeLayout(){if(HEDIT){try{const l=JSON.parse(localStorage.getItem(HKEY));if(l&&l.sheets)return l}catch(e){}}return HOME_LAYOUT?JSON.parse(JSON.stringify(HOME_LAYOUT)):defaultHomeLayout()}
+let HL=null,hSel=null;
+function renderStk(c){const d=c._d;drawSticker(c,d.k,d.flat).then(sc=>{c.style.left=d.x+'%';c.style.top=d.y+'%';c.style.width=(d.w*sc)+'%';c.style.transform=`translate(-50%,-50%) rotate(${d.a}deg)`}).catch(()=>{})}
+function placeSticker(parent,d){const c=document.createElement('canvas');c._d=d;parent.appendChild(c);renderStk(c);if(HEDIT)hookStk(c);return c}
 function buildHome(){
-  // quelques stickers autour du titre
-  const st=HOME.querySelector('.hstk');
-  [['ph-eclat-jaune-12',14,13,30,-8],['ph-blob-rose-40',86,11,30,10],['ph-fleur-vert-7',10,88,28,6],['ph-vague-violet-3',82,90,40,-6],['ph-galet-bleu-91',88,52,18,14],['ph-etoile-orange-5',9,47,17,-12]]
-    .forEach(([k,x,y,w,a],i)=>placeSticker(st,k,x,y,w,a,false));
-  // listes d'exemple : pas de titre, juste des planches de stickers, chacune dans son style
-  const EX=[
-    {side:'hl',dx:-104,dy:-50,r:-7,paper:'quad',n:24,sizes:[30,26,24,22,20,18,16],flat:false,seed:11},  // planche dense, comme une feuille de stickers
-    {side:'hl',dx:-38,dy:-44,r:4,paper:'lines',n:8,sizes:[58,50,44,38],flat:false,seed:23},           // quelques gros stickers
-    {side:'hr',dx:-62,dy:-52,r:6,paper:'dots',n:16,sizes:[36,30,26,22,20],flat:true,seed:37},          // aplats sans liseré
-    {side:'hr',dx:4,dy:-46,r:-5,paper:'kraft',n:11,sizes:[46,40,34,30,26],flat:false,seed:51}];         // sur kraft
-  EX.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';
+  HL=homeLayout();
+  const st=HOME.querySelector('.hstk');st.innerHTML='';HOME.querySelectorAll('.hside').forEach(h=>h.innerHTML='');
+  HL.center.forEach(d=>placeSticker(st,d));
+  HL.sheets.forEach((e,i)=>{const host=HOME.querySelector('.'+e.side),d=document.createElement('div');d.className='ex';d._e=e;
     d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`;d.style.left='0';d.style.top='0';
     d.innerHTML=`<div class="paper p-${e.paper}"></div><div class="ruling r-${e.paper}" style="--deco:.4"></div>`;host.appendChild(d);
-    const R=rng(e.seed),keys=randomStickers(e.n,e.seed*101),widths=keys.map((_,j)=>e.sizes[j%e.sizes.length]*(.85+R()*.3));
-    packSquare(keys,widths,{x0:7,x1:93,y0:9,y1:91},297/210,e.seed,{margin:e.flat?0:S.cfg.margin,gap:e.flat?16:12,res:1.4})
-      .forEach(o=>placeSticker(d,o.k,o.x,o.y,o.w,o.a,e.flat))})}
+    e.st.forEach(o=>placeSticker(d,o));if(HEDIT)hookSheet(d)});
+  if(HEDIT)homeEditor()}
+function hookSheet(d){const e=d._e,T=()=>{d.style.transform=`translate(${e.dx}%,${e.dy}%) rotate(${e.r}deg)`};
+  d.addEventListener('pointerdown',ev=>{if(ev.target.tagName==='CANVAS')return;ev.preventDefault();hSelect(null);hSheet=d;
+    const W=d.offsetWidth,H=d.offsetHeight,x0=e.dx,y0=e.dy,p0=[ev.clientX,ev.clientY];d.setPointerCapture(ev.pointerId);
+    const mv=m=>{e.dx=+(x0+(m.clientX-p0[0])/W*100).toFixed(1);e.dy=+(y0+(m.clientY-p0[1])/H*100).toFixed(1);T()};
+    const up=()=>{d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);hSave()};
+    d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up)});
+  d.addEventListener('wheel',ev=>{if(ev.target.tagName==='CANVAS')return;ev.preventDefault();e.r=+(e.r+(ev.deltaY>0?.5:-.5)).toFixed(1);T();hSave()},{passive:false});
+  d.addEventListener('dblclick',ev=>{if(ev.target.tagName==='CANVAS')return;const host=d.parentNode;host.appendChild(d);const arr=HL.sheets;arr.splice(arr.indexOf(e),1);arr.push(e);hSave()})}
+let hSheet=null;
+
+/* ---------- éditeur de l'accueil (?edithome) ---------- */
+function hSave(){try{localStorage.setItem(HKEY,JSON.stringify(HL))}catch(e){}}
+function listOf(c){const ex=c.parentNode.closest?.('.ex');return ex?ex._e.st:HL.center}
+function hSelect(c){if(c)hSheet=null;HOME.querySelectorAll('canvas.hsel').forEach(x=>x.classList.remove('hsel'));hSel=c;if(c)c.classList.add('hsel')}
+function hookStk(c){
+  c.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();hSelect(c);c.parentNode.appendChild(c); // au premier plan
+    const arr=listOf(c);arr.splice(arr.indexOf(c._d),1);arr.push(c._d);
+    const P=c.parentNode.getBoundingClientRect(),host=c.parentNode.closest('.ex'),rot=host?host._e.r*Math.PI/180:0;
+    const W=c.parentNode.offsetWidth,H=c.parentNode.offsetHeight,x0=c._d.x,y0=c._d.y,p0=[e.clientX,e.clientY];c.setPointerCapture(e.pointerId);
+    const mv=ev=>{const dx=ev.clientX-p0[0],dy=ev.clientY-p0[1],ux=dx*Math.cos(-rot)-dy*Math.sin(-rot),uy=dx*Math.sin(-rot)+dy*Math.cos(-rot);
+      c._d.x=+(x0+ux/W*100).toFixed(2);c._d.y=+(y0+uy/H*100).toFixed(2);c.style.left=c._d.x+'%';c.style.top=c._d.y+'%'};
+    const up=()=>{c.removeEventListener('pointermove',mv);c.removeEventListener('pointerup',up);hSave()};
+    c.addEventListener('pointermove',mv);c.addEventListener('pointerup',up)});
+  c.addEventListener('wheel',e=>{e.preventDefault();hSelect(c);const d=c._d;
+    if(e.shiftKey||e.altKey)d.a=Math.round(d.a+(e.deltaY>0?3:-3));else d.w=+Math.max(4,d.w*(e.deltaY>0?.95:1.05)).toFixed(2);renderStk(c);hSave()},{passive:false});
+  c.addEventListener('dblclick',e=>{e.stopPropagation();hCycle(c,'shape')})}
+function hCycle(c,what){const d=c._d,p=parsePH(d.k),cs=Object.keys(STK_COLORS);
+  if(what==='shape')p.shape=STK_SHAPES[(STK_SHAPES.indexOf(p.shape)+1)%STK_SHAPES.length];
+  if(what==='color')p.color=cs[(cs.indexOf(p.color)+1)%cs.length];
+  if(what==='seed')p.seed=Math.floor(Math.random()*900);
+  d.k=`ph-${p.shape}-${p.color}-${p.seed}`;renderStk(c);hSave()}
+function homeEditor(){
+  document.body.classList.add('hedit');
+  let bar=document.getElementById('hbar');if(bar)bar.remove();bar=document.createElement('div');bar.id='hbar';
+  bar.innerHTML=`<b>Édition de l’accueil</b>
+    <span>Sticker : glisser = déplacer · molette = taille · Maj + molette = rotation · double-clic = forme · <kbd>C</kbd> couleur · <kbd>V</kbd> variante · <kbd>F</kbd> liseré · <kbd>Suppr</kbd> retirer · <kbd>D</kbd> dupliquer<br>Feuille (clic sur le papier) : glisser = déplacer · molette = rotation · double-clic = passer devant</span>
+    <div><button data-a="add">+ Sticker</button><button data-a="paper">Papier suivant</button><button data-a="pack">Ranger la feuille</button><button data-a="reset">Tout réinitialiser</button><button data-a="copy" class="pri">Copier la mise en page</button></div>`;
+  document.body.appendChild(bar);
+  const target=()=>hSel?(hSel.parentNode.closest('.ex')||null):hSheet;
+  bar.onclick=async e=>{const a=e.target.dataset?.a;if(!a)return;
+    if(a==='add'){const ex=target(),par=ex||HOME.querySelector('.hstk'),arr=ex?ex._e.st:HL.center,d={k:randomStickers(1,Date.now()%9999)[0],x:50,y:50,w:30,a:0,flat:false};arr.push(d);hSelect(placeSticker(par,d));hSave()}
+    if(a==='paper'){const ex=target();if(!ex){toast('Clique d’abord un sticker de la feuille à changer');return}const ps=PAPERS.map(p=>p[0]);ex._e.paper=ps[(ps.indexOf(ex._e.paper)+1)%ps.length];
+      ex.querySelector('.paper').className='paper p-'+ex._e.paper;ex.querySelector('.ruling').className='ruling r-'+ex._e.paper;hSave()}
+    if(a==='pack'){const ex=target();if(!ex){toast('Clique d’abord un sticker de la feuille à ranger');return}const st=ex._e.st,flat=st.every(o=>o.flat);
+      const P=packSquare(st.map(o=>o.k),st.map(o=>o.w),{x0:7,x1:93,y0:9,y1:91},297/210,Date.now()%9999,{margin:flat?0:S.cfg.margin,gap:flat?16:12,res:1.4,start:1.15});
+      P.forEach((o,i)=>Object.assign(st[i],{x:+o.x.toFixed(2),y:+o.y.toFixed(2),w:+o.w.toFixed(2),a:o.a}));hSave();buildHome()}
+    if(a==='reset'){if(!confirm('Revenir à la mise en page de départ ?'))return;localStorage.removeItem(HKEY);hSel=null;buildHome()}
+    if(a==='copy'){const t=JSON.stringify(HL);try{await navigator.clipboard.writeText(t);toast('Mise en page copiée : colle-la à Claude')}catch(err){prompt('Copie ce texte :',t)}}};
+  if(!window._hkeys){window._hkeys=true;addEventListener('keydown',e=>{if(!hSel||e.target.closest?.('input,textarea'))return;const k=e.key.toLowerCase();
+    if(k==='c')hCycle(hSel,'color');else if(k==='v')hCycle(hSel,'seed');else if(k==='f'){hSel._d.flat=!hSel._d.flat;renderStk(hSel);hSave()}
+    else if(k==='d'){const arr=listOf(hSel),d={...hSel._d,x:hSel._d.x+4,y:hSel._d.y+3};arr.push(d);hSelect(placeSticker(hSel.parentNode,d));hSave()}
+    else if(k==='delete'||k==='backspace'){e.preventDefault();const arr=listOf(hSel);arr.splice(arr.indexOf(hSel._d),1);hSel.remove();hSel=null;hSave()}
+    else if(k.startsWith('arrow')){e.preventDefault();const st=e.shiftKey?2:.4;if(k==='arrowleft')hSel._d.x-=st;if(k==='arrowright')hSel._d.x+=st;if(k==='arrowup')hSel._d.y-=st;if(k==='arrowdown')hSel._d.y+=st;renderStk(hSel);hSave()}})}}
+
 boot();
