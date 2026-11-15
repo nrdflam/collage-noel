@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=202611152356">
+<link rel="stylesheet" href="css/app.css?v=202611152359">
 <style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
@@ -19,17 +19,17 @@
   </filter>
 </svg>
 
-<header id="brand"><div class="fam" spellcheck="false"></div><div class="bsub"><span class="fsub" spellcheck="false"></span><button id="favstar" type="button">☆ Ajouter aux favoris</button><span class="wrap-rel" id="famwrap"><button id="boardsbtn">Famille ▾</button><div class="menu" id="boardsmenu"></div></span></div></header>
+<header id="brand"><div class="frow"><div class="fam" spellcheck="false"></div><span class="wrap-rel" id="famwrap"><button id="boardsbtn" type="button" data-tip="Réglages de la liste" aria-label="Réglages de la liste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><div class="menu" id="boardsmenu"></div></span></div><div class="bsub"><span class="fsub" spellcheck="false"></span><button id="favstar" type="button">☆ Ajouter aux favoris</button></div></header>
 <div id="topright"><button id="mklist" type="button">✨ Créer ma liste</button><div class="wrap-rel" id="favwrap"><button id="favbtn">★ Mes favoris</button><div class="menu" id="favmenu"></div></div><div id="modes"><button data-m="edit">Éditer</button><button data-m="view">Aperçu</button></div><div class="wrap-rel" id="account"><button id="acctbtn">Se connecter</button><div class="menu" id="acctmenu"></div></div></div>
-<div id="stackhint">Clique sur une liste pour l’ouvrir</div>
+<div id="stackhint">Clique sur une page pour l’ouvrir</div>
 <div id="stage"></div>
 <nav id="pager"></nav>
 <div id="lasso"></div>
 <div id="status"><i></i><span>Chargement…</span></div>
 
 <div class="dock">
-  <button id="backstack" class="view-only" data-tip="Revoir toutes les listes">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="11" height="14" rx="1.5" transform="rotate(-6 9 13)"/><rect x="9" y="4" width="11" height="14" rx="1.5" transform="rotate(5 14 11)"/></svg><span>Toutes les listes</span></button>
+  <button id="backstack" class="view-only" data-tip="Revoir toutes les pages">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="11" height="14" rx="1.5" transform="rotate(-6 9 13)"/><rect x="9" y="4" width="11" height="14" rx="1.5" transform="rotate(5 14 11)"/></svg><span>Toutes les pages</span></button>
   <div class="sep view-only"></div>
   <button id="additem" class="primary edit-only" data-tip="Ajouter un objet · ou colle une image (⌘V)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Objet</span>
@@ -45,25 +45,25 @@
   <button id="delsel" class="edit-only" data-tip="Supprimer la sélection · touche Suppr">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Supprimer</span>
   </button>
-  <button id="shuffle" class="edit-only" data-tip="Mélanger la liste">
+  <button id="shuffle" class="edit-only" data-tip="Mélanger la page">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
   </button>
   <div class="sep edit-only"></div>
-  <div class="wrap-rel edit-only"><button id="setbtn" data-tip="Paramètres de la liste">
+  <div class="wrap-rel edit-only"><button id="setbtn" data-tip="Paramètres de la page">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
     <div class="menu up setmenu" id="setmenu"><div class="setcol"><div class="mh">Papier</div><div id="papermenu"></div></div><div class="setcol"><div class="mh">Police du titre</div><div id="fontmenu"></div></div></div></div>
-  <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer cette liste">
+  <div class="wrap-rel edit-only"><button id="delbtn" data-tip="Supprimer cette page">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
-    <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette liste et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
+    <div class="menu up" id="delmenu" style="min-width:240px"><div style="padding:8px 10px 4px">Supprimer cette page et tous ses objets ?</div><div class="row" style="margin:8px 6px 6px"><button class="btn" data-no>Annuler</button><button class="btn dark" data-yes>Supprimer</button></div></div></div>
   <div class="sep edit-only"></div>
   <div class="wrap-rel"><button id="sharebtn" class="share">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Partager</span></button>
     <div class="menu up sharemenu" id="sharemenu">
       <button id="sh_link"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span><b>Copier le lien</b><small>Pour partager en ligne</small></span></button>
-      <button id="sh_png"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span><b>Télécharger l’image</b><small>PNG de la liste, format A4</small></span></button>
+      <button id="sh_png"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span><b>Télécharger l’image</b><small>PNG de la page, format A4</small></span></button>
       <button id="sh_copyimg"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span><b>Copier l’image</b><small>À coller dans un message</small></span></button>
       <div class="sec edit-only" style="display:block">Sauvegarde</div>
-      <button id="sh_backup" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 19h14"/></svg><span><b>Exporter une sauvegarde</b><small>Fichier .json de toute la famille</small></span></button>
+      <button id="sh_backup" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 19h14"/></svg><span><b>Exporter une sauvegarde</b><small>Fichier .json de toute la liste</small></span></button>
       <button id="sh_restore" class="edit-only"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5"/><path d="M5 5h14"/></svg><span><b>Importer une sauvegarde</b><small>Crée une copie, sans rien écraser</small></span></button>
       <input type="file" id="restorefile" accept="application/json,.json" hidden>
     </div></div>
@@ -108,13 +108,13 @@
   <div class="wlogin"><p>Fais la liste de Noël de ta famille en collage, partage-la et laisse tes proches réserver les cadeaux.</p>
     <form id="loginform"><input type="email" id="lemail" placeholder="ton@email.fr" required autocomplete="email"><button class="btn dark">Recevoir un lien de connexion</button></form>
     <small id="lsent">Pas de mot de passe : tu reçois un lien par mail.</small></div>
-  <div class="wcreate"><p>Comment s’appelle ta famille ?</p><form id="createform"><input id="cname" placeholder="ex. Famille Martin" required><button class="btn dark">Créer ma liste</button></form></div>
+  <div class="wcreate"><p>Comment s’appelle ta liste ?</p><form id="createform"><input id="cname" placeholder="ex. Famille Martin" required><button class="btn dark">Créer ma liste</button></form></div>
   <button type="button" class="wclose" id="wclose">Fermer</button>
 </div></div>
 <div id="confirm" hidden-until-css><div class="ccard">
   <h3 id="ctitle"></h3><p id="ctext"></p>
   <div id="cwarn"></div>
-  <label id="ctype">Pour confirmer, tape le nom de la famille :<input id="cinput" autocomplete="off" spellcheck="false"></label>
+  <label id="ctype">Pour confirmer, tape le nom de la liste :<input id="cinput" autocomplete="off" spellcheck="false"></label>
   <div class="cact"><button type="button" class="btn" id="cno">Annuler</button><button type="button" class="btn danger-fill" id="cyes">Supprimer</button></div>
 </div></div>
 <div id="home" hidden-until-css>
@@ -125,7 +125,7 @@
       <p class="hlead">La liste de Noël de toute la famille, découpée et collée sur une feuille de papier. Tu ajoutes tes envies en collant un lien, tes proches les voient et réservent le cadeau en un clic.</p>
       <div class="hauth">
         <div class="htabs"><button type="button" data-t="new" class="cur">Créer une liste</button><button type="button" data-t="login">Se connecter</button></div>
-        <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta famille, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
+        <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta liste, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
         <small id="hmsg">Pas de mot de passe : tu reçois un lien de connexion par mail.</small>
       </div>
       <a href="#demo" class="hdemo">ou regarde un exemple →</a>
@@ -153,8 +153,8 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=202611152356"></script>
+<script src="config.js?v=202611152359"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js?v=202611152356"></script>
+<script src="js/app.js?v=202611152359"></script>
 </body>
 </html>

@@ -195,7 +195,7 @@
   .ro .dock .edit-only{display:none}
   #brand{position:fixed;left:24px;top:18px;z-index:31;display:flex;flex-direction:column;gap:1px;transition:all .5s cubic-bezier(.2,.8,.2,1);max-width:34vw}
   #brand .fam{font:600 17px/1.2 Fraunces,Georgia,serif;outline:none;border-radius:6px;padding:2px 6px;margin-left:-6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #brand .fam:empty::before{content:"Nom de la famille";opacity:.4}
+  #brand .fam:empty::before{content:"Nom de la liste";opacity:.4}
   body:not(.ro) #brand .fam{cursor:text}
   body:not(.ro) #brand .fam:hover{background:rgba(0,0,0,.04)}
   #brand .bsub{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
@@ -581,3 +581,12 @@
 .dz .pv svg path{fill:none;stroke:#fff;stroke-width:4;stroke-linejoin:round;paint-order:stroke;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.55))}
 .dz .pv em{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);line-height:1.2;font-style:normal;font-size:12px;background:rgba(20,16,12,.75);color:#fff;padding:4px 10px;border-radius:99px;white-space:nowrap}
 .dz .pv em[hidden]{display:none}
+
+/* ---------- nom de la liste + roue crantée ---------- */
+#brand .frow{display:flex;align-items:center;gap:2px;min-width:0}
+#brand .frow .fam{min-width:0}
+#boardsbtn{border:0;background:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;padding:0;flex:none}
+#boardsbtn svg{width:16px;height:16px}
+#boardsbtn:hover,#famwrap:has(.menu.open) #boardsbtn{background:rgba(0,0,0,.06);color:var(--ink)}
+#famwrap #boardsmenu{top:calc(100% + 6px);left:0;transform:none;min-width:250px}
+#boardsmenu .msep{border:0;border-top:1px solid var(--line);margin:6px 4px}

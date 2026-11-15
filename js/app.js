@@ -382,7 +382,7 @@ function renderAll(redraw){
   let prev=null;
   ss.forEach(([id,sh])=>{let el=spreads.get(id);if(!el){el=makeSpread(id);spreads.set(id,el)}updateSpread(el,id,sh);
     const want=prev?prev.nextSibling:stage.firstChild;if(want!==el)stage.insertBefore(el,want);prev=el});
-  let ghost=stage.querySelector('.ghost');if(!ghost){ghost=document.createElement('div');ghost.className='ghost';ghost.title='Ajouter une liste';ghost.innerHTML=`<div class="gs"><span>${svg.plus}</span></div>`;ghost.onclick=addSheet;stage.appendChild(ghost)}
+  let ghost=stage.querySelector('.ghost');if(!ghost){ghost=document.createElement('div');ghost.className='ghost';ghost.title='Ajouter une page';ghost.innerHTML=`<div class="gs"><span>${svg.plus}</span></div>`;ghost.onclick=addSheet;stage.appendChild(ghost)}
   ghost.style.display=EDIT?'':'none';
   // pièces
   for(const [id,el] of pieces)if(!S.items.has(id)||!spreads.has(S.items.get(id).sheet)){el.remove();pieces.delete(id);sel.delete(id)}
@@ -397,7 +397,7 @@ function renderAll(redraw){
 }
 function makeSpread(id){
   const el=document.createElement('section');el.className='spread';el.dataset.id=id;
-  el.innerHTML=`<aside class="list"><h2>La liste</h2><div class="entries"></div></aside>
+  el.innerHTML=`<aside class="list"><h2>Les envies</h2><div class="entries"></div></aside>
     <div class="sheet"><div class="paper"></div><div class="ruling"></div><div class="head"><span class="hgrip" title="Glisser pour déplacer le titre · double-clic : recentrer">${svg.grip}</span><h1 class="title" spellcheck="false"></h1><p class="subtitle" spellcheck="false"></p></div><div class="layer"></div><div class="drop-hint">Dépose l’image pour l’ajouter</div></div>
     <div class="spacer"></div>`;
   const sheet=el.querySelector('.sheet'),title=el.querySelector('.title'),sub=el.querySelector('.subtitle');
@@ -492,7 +492,7 @@ function goSheet(d){const ss=sortedSheets().map(s=>s[0]);const i=ss.indexOf(acti
 function renderPager(){const p=document.getElementById('pager'),ss=sortedSheets();p.classList.toggle('show',ss.length>1);if(ss.length<2)return;
   const i=ss.findIndex(s=>s[0]===activeSheet);p.innerHTML='';
   const arr=(t,d,dis)=>{const b=document.createElement('button');b.className='arr';b.textContent=t;b.disabled=dis;b.onclick=()=>goSheet(d);p.appendChild(b)};
-  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Liste '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>setActive(id);p.appendChild(b)});arr('›',1,i>=ss.length-1)}
+  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Page '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>setActive(id);p.appendChild(b)});arr('›',1,i>=ss.length-1)}
 let openEntry=null;
 function renderList(sid){
   const box=spreads.get(sid).querySelector('.entries');const its=[...S.items].filter(([,v])=>v.sheet===sid&&(EDIT||!v.ph)).sort((a,b)=>(a[1].n||0)-(b[1].n||0));
@@ -598,7 +598,7 @@ addEventListener('keydown',e=>{
    Feuilles
    ===================================================================== */
 function addSheet(){const max=Math.max(0,...[...S.sheets.values()].map(s=>s.order||0));const id='s'+uid();
-  store.setSheet(id,{order:max+1,title:'Nouvelle liste',subtitle:'',font:'Caveat',paper:'uni',board:activeBoard});activeSheet=id;addPlaceholders(id);
+  store.setSheet(id,{order:max+1,title:'Nouvelle page',subtitle:'',font:'Caveat',paper:'uni',board:activeBoard});activeSheet=id;addPlaceholders(id);
   renderPager()}
 
 /* =====================================================================
@@ -797,7 +797,7 @@ function smartShuffle(sid){
     return res}
   let lo=free/its.length*.05,hi=free/its.length*.95,best=null;
   for(let i=0;i<16;i++){const mid=(lo+hi)/2;let r=null;for(let k=0;k<6&&!r;k++)r=attempt(mid);if(r){best=r;lo=mid}else hi=mid}
-  if(!best){toast('Pas assez de place sur la liste');return}
+  if(!best){toast('Pas assez de place sur la page');return}
   // recentrer verticalement le bloc dans l’espace libre
   const minY=Math.min(...best.map(b=>b.cy-b.bh/2)),maxY=Math.max(...best.map(b=>b.cy+b.bh/2)),dy=((top+SH-edge)-(minY+maxY))/2;best.forEach(b=>b.cy+=dy);
   best.forEach(({o,cx,cy,a,dw})=>{
@@ -834,7 +834,7 @@ decor.addEventListener('input',()=>{const v=+decor.value;decoout.textContent=v+'
   const el=spreads.get(activeSheet);el&&el.querySelector('.ruling').style.setProperty('--deco',v/100);
   clearTimeout(decoT);decoT=setTimeout(()=>{if(activeSheet)store.setSheet(activeSheet,{deco:v})},350)});
 decor.addEventListener('pointerdown',e=>e.stopPropagation());
-FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>Mode surprise · réservations cachées</button><div class="mnote">Activé : tu ne verras pas ce que tes proches ont réservé sur cette liste.</div>`;
+FM.innerHTML=FONTS.map(([f])=>`<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')+`<div class="mh" style="margin-top:6px">Objets</div><button data-outline type="button"><span class="tg"></span>Liseré blanc autour</button><div class="mh" style="margin-top:6px">Réservations</div><button data-resvis type="button"><span class="tg"></span>Mode surprise · réservations cachées</button><div class="mnote">Activé : tu ne verras pas ce que tes proches ont réservé sur cette page.</div>`;
 const SETM=document.getElementById('setmenu');
 function syncSet(){const sh=S.sheets.get(activeSheet)||{};
   PM.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('cur',b.dataset.p===(sh.paper||'uni')));
@@ -848,7 +848,7 @@ document.getElementById('setbtn').onclick=e=>{e.stopPropagation();openMenu(SETM)
 SETM.addEventListener('pointerdown',e=>e.stopPropagation());
 document.getElementById('delbtn').onclick=e=>{e.stopPropagation();openMenu(DM)};
 PM.onclick=e=>{const b=e.target.closest('[data-p]');if(b&&activeSheet){store.setSheet(activeSheet,{paper:b.dataset.p});syncSet()}};
-FM.onclick=e=>{if(e.target.closest('[data-resvis]')&&activeSheet){const on=surpriseOn(activeSheet);store.setSheet(activeSheet,{surprise:!on});syncSet();toast(on?'Mode surprise désactivé : tu vois les réservations de cette liste':'Mode surprise activé : réservations cachées sur cette liste');if(MODE==='cloud')setTimeout(()=>loadRes().then(()=>renderAll()),900);return}
+FM.onclick=e=>{if(e.target.closest('[data-resvis]')&&activeSheet){const on=surpriseOn(activeSheet);store.setSheet(activeSheet,{surprise:!on});syncSet();toast(on?'Mode surprise désactivé : tu vois les réservations de cette page':'Mode surprise activé : réservations cachées sur cette page');if(MODE==='cloud')setTimeout(()=>loadRes().then(()=>renderAll()),900);return}
   if(e.target.closest('[data-outline]')&&activeSheet){store.setSheet(activeSheet,{outline:!S.sheets.get(activeSheet)?.outline});syncSet();return}
   const b=e.target.closest('[data-f]');if(b&&activeSheet){store.setSheet(activeSheet,{font:b.dataset.f});syncSet()}};
 DM.querySelector('[data-no]').onclick=closeMenus;DM.querySelector('[data-yes]').onclick=()=>{closeMenus();if(!activeSheet)return;const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet),next=ss[i+1]||ss[i-1]||null;store.delSheet(activeSheet);if(next)setActive(next)};
@@ -918,19 +918,18 @@ function famMenu(){BM.innerHTML='';
   const head=t=>{const h=document.createElement('div');h.className='mh';h.textContent=t;BM.appendChild(h)};
   const item=(html,fn,cls)=>{const x=document.createElement('button');x.innerHTML=html;if(cls)x.className=cls;x.onclick=fn;BM.appendChild(x);return x};
   const fams=[...S.boards].filter(([id])=>MODE==='local'||MYFAMS.has(id)).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-  if(fams.length>1||MODE==='cloud'){head('Mes familles');fams.forEach(([id,b])=>item(esc(b.name||'Sans nom'),()=>{closeMenus();if(MODE==='cloud')location.hash=id;else{location.hash=id;pickBoard();renderAll()}},id===activeBoard?'cur':''))}
-  item('<b style="color:var(--accent)">+ Nouvelle famille</b>',()=>{closeMenus();MODE==='cloud'?createFamily('Nouvelle famille'):newBoard('Nouvelle famille')});
-  const b=S.boards.get(activeBoard)||{};
-  if(MODE==='cloud'&&CAN_WRITE){head('Cette famille');
-    item('Inviter quelqu’un à modifier',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
+  head('Mes listes');fams.forEach(([id,b])=>item((id===activeBoard?'✓ ':'')+esc(b.name||'Sans nom'),()=>{closeMenus();if(MODE==='cloud')location.hash=id;else{location.hash=id;pickBoard();renderAll()}},id===activeBoard?'cur':''));
+  item('<b style="color:var(--accent)">+ Nouvelle liste</b>',()=>{closeMenus();MODE==='cloud'?createFamily('Nouvelle liste'):newBoard('Nouvelle liste')});
+  if(MODE==='cloud'&&CAN_WRITE){head('Partage');
+    item('Inviter quelqu’un à modifier cette liste',async()=>{closeMenus();const {data:code}=await SB.rpc('invite_code',{fid:activeBoard});if(!code){toast('Lien indisponible');return}
       const url=PAGE_URL+'?join='+code+'#'+activeBoard;try{await navigator.clipboard.writeText(url);toast('Lien d’invitation copié : à envoyer à qui doit pouvoir modifier')}catch(e){toast(url)}})}
-  if(EDIT){head('Outils');item('✨ Bouton « Ma liste de Noël » pour ton navigateur',()=>{closeMenus();openInstall()})}
-  if(EDIT&&(MODE==='local'||(CAN_WRITE&&FAM&&USER&&FAM.owner===USER.id))){if(MODE==='local')head('Cette famille');item('Supprimer cette famille…',()=>{closeMenus();askDeleteFamily()},'danger')}
+  if(EDIT){head('Ajouter plus vite');item('✨ Bouton « Ma liste de Noël » pour ton navigateur',()=>{closeMenus();openInstall()})}
   if(HEDIT&&activeBoard==='accueil'){head('Accueil');
-    item('<b style="color:var(--accent)">Voir l’accueil avec ces feuilles</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
+    item('<b style="color:var(--accent)">Voir l’accueil avec ces pages</b>',async()=>{closeMenus();if(await makeHomeImages())location.href=location.pathname+'?edithome'});
     item('Copier pour Claude',()=>{closeMenus();copyAccueil()});
-    const n=document.createElement('div');n.className='mnote';n.textContent='Les 4 premières feuilles vont sur l’accueil (2 à gauche, 2 à droite).';BM.appendChild(n)}
-  else if(MODE==='local'){head('Mode local');const n=document.createElement('div');n.className='mnote';n.textContent='Rien n’est partagé : configure Supabase (README) pour publier tes listes.';BM.appendChild(n)}
+    const n=document.createElement('div');n.className='mnote';n.textContent='Les 4 premières pages vont sur l’accueil (2 à gauche, 2 à droite).';BM.appendChild(n)}
+  if(EDIT&&(MODE==='local'||(CAN_WRITE&&FAM&&USER&&FAM.owner===USER.id))){const hr=document.createElement('hr');hr.className='msep';BM.appendChild(hr);item('Supprimer cette liste…',()=>{closeMenus();askDeleteFamily()},'danger')}
+  if(MODE==='local'&&!HEDIT){const n=document.createElement('div');n.className='mnote';n.textContent='Mode local : rien n’est partagé.';BM.appendChild(n)}
 }
 document.getElementById('boardsbtn').onclick=e=>{e.stopPropagation();const o=BM.classList.contains('open');closeMenus();if(o)return;famMenu();BM.classList.add('open')};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -958,7 +957,7 @@ rf.onchange=async()=>{const f=rf.files[0];rf.value='';if(!f)return;
   d.items.forEach(([iid,v])=>{if(map[v.sheet])store.setItem('i'+uid(),{...v,sheet:map[v.sheet]},true)});
   if(MODE==='cloud'){setStatus('Restauration…',false);clearTimeout(ftimer);await flush();location.hash=bid}
   else{location.hash=bid;pickBoard();renderAll(true)}
-  toast('Sauvegarde restaurée dans une nouvelle famille')};
+  toast('Sauvegarde restaurée dans une nouvelle liste')};
 
 /* =====================================================================
    Réservation (mode Aperçu)
@@ -996,7 +995,7 @@ AB.onclick=e=>{e.stopPropagation();if(!USER){showWelcome();return}const o=AM.cla
   AM.innerHTML='';const add=(h,fn)=>{const b=document.createElement('button');b.innerHTML=h;b.onclick=()=>{closeMenus();fn()};AM.appendChild(b)};
   const hd=document.createElement('div');hd.className='mh';hd.textContent=USER.email;AM.appendChild(hd);
   [...MYFAMS].sort((a,b)=>a[1].order-b[1].order).forEach(([id,f])=>add(esc(f.name||id)+(id===activeBoard?' ·':''),()=>{location.hash=id}));
-  add('<b style="color:var(--accent)">+ Nouvelle famille</b>',()=>showWelcome());
+  add('<b style="color:var(--accent)">+ Nouvelle liste</b>',()=>showWelcome());
   add('Se déconnecter',async()=>{await SB.auth.signOut();location.reload()});AM.classList.add('open')};
 
 /* =====================================================================
@@ -1065,10 +1064,10 @@ document.getElementById('f_url').addEventListener('keydown',e=>{if(e.key==='Ente
 const CF=document.getElementById('confirm'),cin=document.getElementById('cinput'),cyes=document.getElementById('cyes');
 function askDeleteFamily(){const b=S.boards.get(activeBoard)||{},name=(b.name||'').trim(),sh=sortedSheets(),ids=new Set(sh.map(x=>x[0]));
   const nItems=[...S.items.values()].filter(v=>ids.has(v.sheet)&&!v.ph).length,nRes=[...S.res.keys()].filter(k=>ids.has(S.items.get(k)?.sheet)).length;
-  document.getElementById('ctitle').textContent='Supprimer « '+(name||'cette famille')+' » ?';
-  document.getElementById('ctext').textContent='La page de la famille, ses listes et son lien de partage disparaissent. Les personnes qui ont le lien tomberont sur une page vide.';
+  document.getElementById('ctitle').textContent='Supprimer « '+(name||'cette liste')+' » ?';
+  document.getElementById('ctext').textContent='Toutes ses pages et son lien de partage disparaissent. Les personnes qui ont le lien tomberont sur une page vide.';
   const w=document.getElementById('cwarn');
-  w.innerHTML=nItems?`<b>⚠ Attention, c’est définitif</b>${nItems} objet${nItems>1?'s':''} sur ${sh.length} liste${sh.length>1?'s':''} ${nItems>1?'seront supprimés':'sera supprimé'}${nRes?`, dont ${nRes} déjà réservé${nRes>1?'s':''} par tes proches`:''}. Impossible de revenir en arrière.<br>Pense à <u>Partager › Exporter une sauvegarde</u> avant.`:'';
+  w.innerHTML=nItems?`<b>⚠ Attention, c’est définitif</b>${nItems} objet${nItems>1?'s':''} sur ${sh.length} page${sh.length>1?'s':''} ${nItems>1?'seront supprimés':'sera supprimé'}${nRes?`, dont ${nRes} déjà réservé${nRes>1?'s':''} par tes proches`:''}. Impossible de revenir en arrière.<br>Pense à <u>Partager › Exporter une sauvegarde</u> avant.`:'';
   const typed=nItems>0&&!!name;CF.classList.toggle('typed',typed);cin.value='';cyes.disabled=typed;
   cin.oninput=()=>{cyes.disabled=cin.value.trim().toLowerCase()!==name.toLowerCase()};
   cyes.onclick=async()=>{cyes.disabled=true;CF.classList.remove('on');await deleteFamily(activeBoard)};
@@ -1078,11 +1077,11 @@ CF.addEventListener('pointerdown',e=>{if(e.target===CF)CF.classList.remove('on')
 CF.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')CF.classList.remove('on')});
 async function deleteFamily(fid){
   if(MODE==='cloud'){const {error}=await SB.from('families').delete().eq('id',fid);if(error){toast('Suppression impossible : '+error.message);return}
-    MYFAMS.delete(fid);S.boards.delete(fid);toast('Famille supprimée');
+    MYFAMS.delete(fid);S.boards.delete(fid);toast('Liste supprimée');
     const next=[...MYFAMS].sort((a,b)=>a[1].order-b[1].order)[0]?.[0];
     if(next){location.hash=next}else{activeBoard=null;FAM=null;S.sheets.clear();S.items.clear();history.replaceState(null,'',location.pathname);renderAll();showHome()}return}
   const sh=[...S.sheets].filter(([,v])=>(v.board||firstBoard())===fid).map(x=>x[0]);
-  [...S.items].filter(([,v])=>sh.includes(v.sheet)).forEach(([k])=>{S.items.delete(k);S.res.delete(k)});sh.forEach(k=>S.sheets.delete(k));S.boards.delete(fid);saveLocal();toast('Famille supprimée');
+  [...S.items].filter(([,v])=>sh.includes(v.sheet)).forEach(([k])=>{S.items.delete(k);S.res.delete(k)});sh.forEach(k=>S.sheets.delete(k));S.boards.delete(fid);saveLocal();toast('Liste supprimée');
   const next=firstBoard();if(next){location.hash=next}else{activeBoard=null;history.replaceState(null,'',location.pathname);renderAll();showHome()}}
 
 /* =====================================================================
@@ -1099,7 +1098,7 @@ function setHomeTab(t){homeTab=t;HOME.classList.toggle('login',t==='login');HOME
   document.getElementById('hgo').textContent=t==='login'?'Recevoir mon lien de connexion':'Créer ma liste';HOME.querySelector('.htabs').style.display=USER?'none':''}
 HOME.querySelectorAll('.htabs button').forEach(b=>b.onclick=()=>setHomeTab(b.dataset.t));
 document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const m=document.getElementById('hmsg'),name=document.getElementById('hname').value.trim(),email=document.getElementById('hemail').value.trim();m.className='';
-  if(homeTab==='new'&&!name){m.className='err';m.textContent='Donne un nom à ta famille.';document.getElementById('hname').focus();return}
+  if(homeTab==='new'&&!name){m.className='err';m.textContent='Donne un nom à ta liste.';document.getElementById('hname').focus();return}
   if(!SB){m.className='err';m.textContent='Les comptes arrivent très bientôt. En attendant, regarde l’exemple juste en dessous.';return}
   if(USER){createFamily(name);return}
   if(!/^\S+@\S+\.\S+$/.test(email)){m.className='err';m.textContent='Il faut une adresse mail valide.';document.getElementById('hemail').focus();return}
