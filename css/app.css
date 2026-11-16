@@ -701,3 +701,11 @@ body.viewer #topright>.wrap-rel:has(#sharebtn){order:2}
 body.viewer #topright>#mklist{order:3}
 body.viewer #topright>#modes{order:4}
 body.viewer #topright>#account{order:5}
+/* boutons ronds : contenu bien centré (texte masqué + icône sur une seule ligne) */
+#acctbtn.in,body.viewer #topright>.wrap-rel>#sharebtn{display:flex!important;align-items:center;justify-content:center;line-height:0}
+body.viewer #topright>#favstar{display:flex;align-items:center;justify-content:center;line-height:0}
+#acctbtn.in::after{line-height:1;display:block}
+body.viewer #topright>#favstar::before{line-height:1;display:block;transform:translateY(-1px)}
+body.viewer #topright>.wrap-rel>#sharebtn svg{display:block;flex:none;margin:0}
+body.viewer #topright>.wrap-rel>#sharebtn>:not(svg){display:none}
+body.member #topright>#favstar{display:none!important}
