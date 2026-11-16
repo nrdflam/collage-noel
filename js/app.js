@@ -86,7 +86,7 @@ async function boot(){
   MODE='cloud';CAN_WRITE=false;UI='view';setStatus('Chargement…',false);
   const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;
   {const q=new URLSearchParams(location.search);if(q.has('code')){q.delete('code');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}}
-  SB.auth.onAuthStateChange((ev,s)=>{const was=USER?.id;USER=s?.user||null;if((USER?.id||null)!==(was||null))afterAuth()});
+  SB.auth.onAuthStateChange((ev,s)=>{const rs=new URLSearchParams(location.search).has('reset');if(ev==='PASSWORD_RECOVERY'||(s&&rs&&!window.__rs)){window.__rs=1;if(rs)history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>{USER=s?.user||USER;showPassForm();document.getElementById('psent').textContent='Choisis ton nouveau mot de passe.'},400)}const was=USER?.id;USER=s?.user||null;if((USER?.id||null)!==(was||null))afterAuth()});
   await afterAuth(true);
 }
 async function afterAuth(first){
@@ -1016,10 +1016,15 @@ document.getElementById('wclose').onclick=()=>{hideWelcome();W_.classList.remove
 const ID_DOMAIN='users.paperwish.app';
 function idToEmail(id){id=String(id||'').trim().toLowerCase();if(id.includes('@'))return /^\S+@\S+\.\S+$/.test(id)?id:null;return /^[a-z0-9._-]{3,30}$/.test(id)?id+'@'+ID_DOMAIN:null}
 function whoName(u){if(!u)return '';const m=u.user_metadata||{};if(m.username)return m.username;const e=u.email||'';return e.endsWith('@'+ID_DOMAIN)?e.split('@')[0]:e}
-function authErr(e){const t=(e&&e.message)||'';if(/invalid login/i.test(t))return 'Identifiant ou mot de passe incorrect.';if(/already registered|already exists/i.test(t))return 'Cet identifiant est déjà pris. Choisis-en un autre, ou connecte-toi.';if(/password/i.test(t)&&/least|short|6/i.test(t))return 'Mot de passe trop court : 6 caractères minimum.';if(/rate limit|security purposes/i.test(t))return 'Trop d’essais d’un coup, réessaie dans une minute.';return 'Erreur : '+t}
+function authErr(e){const t=(e&&e.message)||'';if(/invalid login/i.test(t))return 'Email ou mot de passe incorrect.';if(/already registered|already exists/i.test(t))return 'Cette adresse a déjà un compte : connecte-toi (ou « Mot de passe oublié ? »).';if(/password/i.test(t)&&/least|short|6/i.test(t))return 'Mot de passe trop court : 6 caractères minimum.';if(/rate limit|security purposes/i.test(t))return 'Trop d’essais d’un coup, réessaie dans une minute.';return 'Erreur : '+t}
 document.getElementById('loginform').onsubmit=async e=>{e.preventDefault();const ls=document.getElementById('lsent'),email=idToEmail(document.getElementById('lemail').value),password=document.getElementById('lpass').value;
-  if(!email){ls.textContent='Identifiant invalide : lettres, chiffres, point ou tiret (3 caractères min.), ou une adresse mail.';return}
+  if(!email){ls.textContent='Il faut une adresse mail valide.';return}
   ls.textContent='Connexion…';const {error}=await SB.auth.signInWithPassword({email,password});ls.textContent=error?authErr(error):'Connecté !';if(!error)hideWelcome()};
+async function forgot(inputId,msgEl){const em=idToEmail(document.getElementById(inputId).value);if(!em||em.endsWith('@'+ID_DOMAIN)){msgEl.className='err';msgEl.textContent='Tape d’abord ton adresse mail juste au-dessus.';document.getElementById(inputId).focus();return}
+  msgEl.className='';msgEl.textContent='Envoi…';const {error}=await SB.auth.resetPasswordForEmail(em,{redirectTo:PAGE_URL+'?reset=1'});
+  if(error){msgEl.className='err';msgEl.textContent=authErr(error)}else msgEl.textContent='C’est envoyé : ouvre le lien reçu à '+em+' (pense aux spams) pour choisir un nouveau mot de passe.'}
+document.getElementById('hforgot').onclick=()=>forgot('hemail',document.getElementById('hmsg'));
+document.getElementById('lforgot').onclick=()=>forgot('lemail',document.getElementById('lsent'));
 function showPassForm(){W_.classList.add('pass');document.getElementById('pwho').textContent=whoName(USER);document.getElementById('psent').textContent='';showWelcome();setTimeout(()=>document.getElementById('npass').focus(),80)}
 document.getElementById('passform').onsubmit=async e=>{e.preventDefault();const m=document.getElementById('psent'),pw=document.getElementById('npass').value;if(pw.length<6){m.textContent='6 caractères minimum.';return}
   m.textContent='Enregistrement…';const {error}=await SB.auth.updateUser({password:pw});if(error){m.textContent=authErr(error);return}m.textContent='C’est enregistré.';document.getElementById('npass').value='';setTimeout(()=>{hideWelcome();W_.classList.remove('pass')},900)};
@@ -1133,14 +1138,14 @@ function showHome(msg){document.body.classList.add('home');hideWelcome();
   if(!homeBuilt){homeBuilt=true;buildHome()}renderFavs()}
 function hideHome(){document.body.classList.remove('home')}
 function setHomeTab(t){homeTab=t;HOME.classList.toggle('login',t==='login');HOME.querySelectorAll('.htabs button').forEach(b=>b.classList.toggle('cur',b.dataset.t===t));
-  document.getElementById('hgo').textContent=t==='login'?'Se connecter':'Créer ma liste';document.getElementById('hpass').autocomplete=t==='login'?'current-password':'new-password';document.getElementById('hpass').placeholder=t==='login'?'Mot de passe':'Mot de passe (6 caractères min.)';document.getElementById('hemail').placeholder=t==='login'?'Identifiant (ou email)':'Choisis un identifiant, ex. florian';HOME.querySelector('.htabs').style.display=USER?'none':''}
+  document.getElementById('hgo').textContent=t==='login'?'Se connecter':'Créer ma liste';document.getElementById('hpass').autocomplete=t==='login'?'current-password':'new-password';document.getElementById('hpass').placeholder=t==='login'?'Mot de passe':'Mot de passe (6 caractères min.)';document.getElementById('hforgot').style.display=t==='login'?'':'none';HOME.querySelector('.htabs').style.display=USER?'none':''}
 HOME.querySelectorAll('.htabs button').forEach(b=>b.onclick=()=>setHomeTab(b.dataset.t));
 document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const m=document.getElementById('hmsg'),name=document.getElementById('hname').value.trim(),email=document.getElementById('hemail').value.trim();m.className='';
   if(homeTab==='new'&&!name){m.className='err';m.textContent='Donne un nom à ta liste.';document.getElementById('hname').focus();return}
   if(!SB){m.className='err';m.textContent='Les comptes arrivent très bientôt. En attendant, regarde l’exemple juste en dessous.';return}
   if(USER){createFamily(name);return}
   const em=idToEmail(email),password=document.getElementById('hpass').value,err=t=>{m.className='err';m.textContent=t};
-  if(!em){err('Identifiant invalide : lettres, chiffres, point ou tiret (3 caractères min.).');document.getElementById('hemail').focus();return}
+  if(!em||(homeTab==='new'&&!email.includes('@'))){err('Il faut une adresse mail valide.');document.getElementById('hemail').focus();return}
   if(password.length<6){err('Mot de passe : 6 caractères minimum.');document.getElementById('hpass').focus();return}
   try{if(homeTab==='new')localStorage.setItem('collage-pending-fam',name);else localStorage.removeItem('collage-pending-fam')}catch(e){}
   m.textContent=homeTab==='new'?'Création du compte…':'Connexion…';

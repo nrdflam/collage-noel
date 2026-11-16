@@ -715,3 +715,5 @@ body.member #topright>#favstar{display:none!important}
 #welcome.pass .wpass{display:block}
 #welcome.pass .wlogin,#welcome.pass .wcreate{display:none!important}
 #loginform,#passform{display:flex;flex-direction:column;gap:8px}
+.hforgot{display:block;margin:6px auto 0;border:0;background:none;font:500 12px Inter;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.hforgot:hover{color:var(--accent)}
