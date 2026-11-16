@@ -679,3 +679,6 @@ body.mobile.viewer #topright button{white-space:nowrap;font-size:12.5px}
 body.mobile.viewer #topright>.wrap-rel>#sharebtn{padding:7px 12px}
 body.mobile.viewer #topright #sharemenu,body.mobile.viewer #topright #favmenu{top:auto;bottom:calc(100% + 8px)}
 body.mobile:not(.viewer) #brand{right:196px}
+body.mobile.viewer #favwrap{display:none!important}
+body.mobile.viewer #topright>.wrap-rel>#sharebtn{font-size:0;gap:0;padding:8px 11px}
+body.mobile.viewer #topright{justify-content:space-between}
