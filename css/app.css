@@ -709,3 +709,9 @@ body.viewer #topright>#favstar::before{line-height:1;display:block;transform:tra
 body.viewer #topright>.wrap-rel>#sharebtn svg{display:block;flex:none;margin:0}
 body.viewer #topright>.wrap-rel>#sharebtn>:not(svg){display:none}
 body.member #topright>#favstar{display:none!important}
+
+/* mot de passe (depuis le menu du compte) */
+#welcome .wpass{display:none}
+#welcome.pass .wpass{display:block}
+#welcome.pass .wlogin,#welcome.pass .wcreate{display:none!important}
+#loginform,#passform{display:flex;flex-direction:column;gap:8px}

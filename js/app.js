@@ -949,7 +949,7 @@ function myLists(){return [...(MODE==='cloud'?MYFAMS:S.boards)].filter(([id])=>i
 const HUB_COL=['#e5533d','#2f6fde','#1f9d55','#f2b705','#8b4fd8','#f07f2e','#e86aa6','#23a8a0'];
 function hubOn(){return !!(USER&&MODE==='cloud')||(MODE==='local'&&CAN_WRITE&&!HEDIT&&myLists().length>0)}
 function renderHub(){const on=hubOn();HOME.classList.toggle('hub',on);if(!on)return;
-  document.getElementById('hwho').textContent=USER?(USER.email||''):'Mode local · rien n’est partagé';document.getElementById('hlogout').style.display=USER?'':'none';
+  document.getElementById('hwho').textContent=USER?whoName(USER):'Mode local · rien n’est partagé';document.getElementById('hlogout').style.display=USER?'':'none';
   const c=document.getElementById('hcards');c.innerHTML='';const L=myLists();c.classList.toggle('many',L.length>3);
   L.forEach((f,i)=>{const b=S.boards.get(f.id)||MYFAMS.get(f.id)||{},x=document.createElement('a');x.href='#'+f.id;x.className='hcard';x.style.setProperty('--c',HUB_COL[i%HUB_COL.length]);
     x.innerHTML='<span class="hcn"></span><span class="hcs"></span><span class="hcgo">Ouvrir →</span>';x.querySelector('.hcn').textContent=f.name;x.querySelector('.hcs').textContent=b.subtitle||'';
@@ -1011,20 +1011,29 @@ const W_=document.getElementById('welcome');
 function showWelcome(msg){W_.classList.toggle('logged',!!USER);W_.classList.toggle('closable',!!activeBoard);document.getElementById('wmsg').textContent=msg||'';W_.classList.add('on');
   setTimeout(()=>(USER?document.getElementById('cname'):document.getElementById('lemail')).focus(),60)}
 function hideWelcome(){W_.classList.remove('on')}
-document.getElementById('wclose').onclick=hideWelcome;
-document.getElementById('loginform').onsubmit=async e=>{e.preventDefault();const email=document.getElementById('lemail').value.trim(),ls=document.getElementById('lsent');
-  ls.textContent='Envoi…';const {error}=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:PAGE_URL+location.search+location.hash}});
-  ls.textContent=error?'Erreur : '+error.message:'C’est parti ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
+document.getElementById('wclose').onclick=()=>{hideWelcome();W_.classList.remove('pass')};
+/* comptes : identifiant + mot de passe. Un identifiant sans « @ » devient une adresse interne (aucun mail n'est envoyé). */
+const ID_DOMAIN='users.paperwish.app';
+function idToEmail(id){id=String(id||'').trim().toLowerCase();if(id.includes('@'))return /^\S+@\S+\.\S+$/.test(id)?id:null;return /^[a-z0-9._-]{3,30}$/.test(id)?id+'@'+ID_DOMAIN:null}
+function whoName(u){if(!u)return '';const m=u.user_metadata||{};if(m.username)return m.username;const e=u.email||'';return e.endsWith('@'+ID_DOMAIN)?e.split('@')[0]:e}
+function authErr(e){const t=(e&&e.message)||'';if(/invalid login/i.test(t))return 'Identifiant ou mot de passe incorrect.';if(/already registered|already exists/i.test(t))return 'Cet identifiant est déjà pris. Choisis-en un autre, ou connecte-toi.';if(/password/i.test(t)&&/least|short|6/i.test(t))return 'Mot de passe trop court : 6 caractères minimum.';if(/rate limit|security purposes/i.test(t))return 'Trop d’essais d’un coup, réessaie dans une minute.';return 'Erreur : '+t}
+document.getElementById('loginform').onsubmit=async e=>{e.preventDefault();const ls=document.getElementById('lsent'),email=idToEmail(document.getElementById('lemail').value),password=document.getElementById('lpass').value;
+  if(!email){ls.textContent='Identifiant invalide : lettres, chiffres, point ou tiret (3 caractères min.), ou une adresse mail.';return}
+  ls.textContent='Connexion…';const {error}=await SB.auth.signInWithPassword({email,password});ls.textContent=error?authErr(error):'Connecté !';if(!error)hideWelcome()};
+function showPassForm(){W_.classList.add('pass');document.getElementById('pwho').textContent=whoName(USER);document.getElementById('psent').textContent='';showWelcome();setTimeout(()=>document.getElementById('npass').focus(),80)}
+document.getElementById('passform').onsubmit=async e=>{e.preventDefault();const m=document.getElementById('psent'),pw=document.getElementById('npass').value;if(pw.length<6){m.textContent='6 caractères minimum.';return}
+  m.textContent='Enregistrement…';const {error}=await SB.auth.updateUser({password:pw});if(error){m.textContent=authErr(error);return}m.textContent='C’est enregistré.';document.getElementById('npass').value='';setTimeout(()=>{hideWelcome();W_.classList.remove('pass')},900)};
 document.getElementById('createform').onsubmit=e=>{e.preventDefault();const n=document.getElementById('cname').value.trim();if(n)createFamily(n)};
 const AM=document.getElementById('acctmenu'),AB=document.getElementById('acctbtn');
 function renderAccount(){document.body.classList.toggle('hasfams',MODE==='local'||MYFAMS.size>0||CAN_WRITE);
   document.getElementById('account').style.display=MODE==='cloud'?'':'none';
-  AB.textContent=USER?(USER.email||'Mon compte'):'Se connecter';AB.dataset.i=USER?(USER.email||'?')[0].toUpperCase():'';AB.classList.toggle('in',!!USER)}
+  AB.textContent=USER?(whoName(USER)||'Mon compte'):'Se connecter';AB.dataset.i=USER?(whoName(USER)||'?')[0].toUpperCase():'';AB.title=USER?whoName(USER):'';AB.classList.toggle('in',!!USER)}
 AB.onclick=e=>{e.stopPropagation();if(!USER){showWelcome();return}const o=AM.classList.contains('open');closeMenus();if(o)return;
   AM.innerHTML='';const add=(h,fn)=>{const b=document.createElement('button');b.innerHTML=h;b.onclick=()=>{closeMenus();fn()};AM.appendChild(b)};
-  const hd=document.createElement('div');hd.className='mh';hd.textContent=USER.email;AM.appendChild(hd);
+  const hd=document.createElement('div');hd.className='mh';hd.textContent=whoName(USER);AM.appendChild(hd);
   [...MYFAMS].sort((a,b)=>a[1].order-b[1].order).forEach(([id,f])=>add(esc(f.name||id)+(id===activeBoard?' ·':''),()=>{location.hash=id}));
   add('<b style="color:var(--accent)">+ Nouvelle liste</b>',()=>showWelcome());
+  add('Mot de passe…',()=>showPassForm());
   add('Se déconnecter',async()=>{await SB.auth.signOut();location.reload()});AM.classList.add('open')};
 
 /* =====================================================================
@@ -1120,20 +1129,24 @@ const HOME=document.getElementById('home');let homeTab='new',homeBuilt=false;
 const pendingName=()=>{try{return localStorage.getItem('collage-pending-fam')||''}catch(e){return ''}};
 function showHome(msg){document.body.classList.add('home');hideWelcome();
   HOME.classList.toggle('logged',!!USER);setHomeTab(USER?'new':homeTab);
-  const m=document.getElementById('hmsg');m.className=msg?'err':'';m.textContent=msg||(USER?'Connecté : '+(USER.email||''):'Pas de mot de passe : tu reçois un lien de connexion par mail.');
+  const m=document.getElementById('hmsg');m.className=msg?'err':'';m.textContent=msg||(USER?'Connecté : '+whoName(USER):'');
   if(!homeBuilt){homeBuilt=true;buildHome()}renderFavs()}
 function hideHome(){document.body.classList.remove('home')}
 function setHomeTab(t){homeTab=t;HOME.classList.toggle('login',t==='login');HOME.querySelectorAll('.htabs button').forEach(b=>b.classList.toggle('cur',b.dataset.t===t));
-  document.getElementById('hgo').textContent=t==='login'?'Recevoir mon lien de connexion':'Créer ma liste';HOME.querySelector('.htabs').style.display=USER?'none':''}
+  document.getElementById('hgo').textContent=t==='login'?'Se connecter':'Créer ma liste';document.getElementById('hpass').autocomplete=t==='login'?'current-password':'new-password';document.getElementById('hpass').placeholder=t==='login'?'Mot de passe':'Mot de passe (6 caractères min.)';document.getElementById('hemail').placeholder=t==='login'?'Identifiant (ou email)':'Choisis un identifiant, ex. florian';HOME.querySelector('.htabs').style.display=USER?'none':''}
 HOME.querySelectorAll('.htabs button').forEach(b=>b.onclick=()=>setHomeTab(b.dataset.t));
 document.getElementById('homeform').onsubmit=async e=>{e.preventDefault();const m=document.getElementById('hmsg'),name=document.getElementById('hname').value.trim(),email=document.getElementById('hemail').value.trim();m.className='';
   if(homeTab==='new'&&!name){m.className='err';m.textContent='Donne un nom à ta liste.';document.getElementById('hname').focus();return}
   if(!SB){m.className='err';m.textContent='Les comptes arrivent très bientôt. En attendant, regarde l’exemple juste en dessous.';return}
   if(USER){createFamily(name);return}
-  if(!/^\S+@\S+\.\S+$/.test(email)){m.className='err';m.textContent='Il faut une adresse mail valide.';document.getElementById('hemail').focus();return}
+  const em=idToEmail(email),password=document.getElementById('hpass').value,err=t=>{m.className='err';m.textContent=t};
+  if(!em){err('Identifiant invalide : lettres, chiffres, point ou tiret (3 caractères min.).');document.getElementById('hemail').focus();return}
+  if(password.length<6){err('Mot de passe : 6 caractères minimum.');document.getElementById('hpass').focus();return}
   try{if(homeTab==='new')localStorage.setItem('collage-pending-fam',name);else localStorage.removeItem('collage-pending-fam')}catch(e){}
-  m.textContent='Envoi…';const {error}=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:PAGE_URL}});
-  if(error){m.className='err';m.textContent='Erreur : '+error.message}else m.textContent='C’est envoyé ! Ouvre le lien reçu à '+email+' (pense aux spams).'};
+  m.textContent=homeTab==='new'?'Création du compte…':'Connexion…';
+  if(homeTab==='new'){const uname=email.includes('@')?'':email.trim().toLowerCase();const {data,error}=await SB.auth.signUp({email:em,password,options:{data:uname?{username:uname}:{}}});
+    if(error){err(authErr(error));return}if(!data.session){err('Compte créé, mais la connexion directe n’est pas encore activée côté serveur.');return}m.textContent='Compte créé !'}
+  else{const {error}=await SB.auth.signInWithPassword({email:em,password});if(error){err(authErr(error));return}m.textContent='Connecté !'}};
 HOME.querySelector('.hdemo').href='?visiteur#demo';
 // stickers découpés (sans passer par les objets de la page)
 function stickerInto(c,im,P,flat,w){const m=flat?0:lisPx(im.naturalWidth,w||40),pad=m+10;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});

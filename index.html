@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Instrument+Serif&family=Permanent+Marker&family=Space+Grotesk:wght@600&family=DM+Serif+Display&family=Gloria+Hallelujah&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=202611160938">
+<link rel="stylesheet" href="css/app.css?v=202611161445">
 <style>[hidden-until-css]{display:none}</style>
 </head>
 <body>
@@ -106,8 +106,9 @@
   <div class="wlogo">Paper<i>Wish</i></div>
   <p class="wmsg" id="wmsg"></p>
   <div class="wlogin"><p>Découpe tes envies, colle-les sur ta feuille, partage-la : tes proches réservent les cadeaux.</p>
-    <form id="loginform"><input type="email" id="lemail" placeholder="ton@email.fr" required autocomplete="email"><button class="btn dark">Recevoir un lien de connexion</button></form>
-    <small id="lsent">Pas de mot de passe : tu reçois un lien par mail.</small></div>
+    <form id="loginform"><input id="lemail" placeholder="Identifiant (ou email)" required autocomplete="username" autocapitalize="none" spellcheck="false"><input type="password" id="lpass" placeholder="Mot de passe" required autocomplete="current-password"><button class="btn dark">Se connecter</button></form>
+    <small id="lsent">Pas encore de compte ? Crée ta liste depuis l’accueil.</small></div>
+  <div class="wpass"><p>Choisis un mot de passe pour te connecter avec <b id="pwho"></b>.</p><form id="passform"><input type="password" id="npass" placeholder="Nouveau mot de passe (6 caractères min.)" required minlength="6" autocomplete="new-password"><button class="btn dark">Enregistrer</button></form><small id="psent"></small></div>
   <div class="wcreate"><p>Comment s’appelle ta liste ?</p><form id="createform"><input id="cname" placeholder="ex. Famille Martin" required><button class="btn dark">Créer ma liste</button></form></div>
   <button type="button" class="wclose" id="wclose">Fermer</button>
 </div></div>
@@ -125,8 +126,8 @@
       <p class="hlead">Tes envies sur papier… numérique. Colle un lien, l’objet se découpe tout seul, tes proches réservent en un clic. Pour Noël, un anniversaire ou une naissance.</p>
       <div class="hauth">
         <div class="htabs"><button type="button" data-t="new" class="cur">Créer une liste</button><button type="button" data-t="login">Se connecter</button></div>
-        <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta liste, ex. Famille Martin" autocomplete="off"><input type="email" id="hemail" placeholder="ton@email.fr" autocomplete="email"><button class="btn dark" id="hgo">Créer ma liste</button></form>
-        <small id="hmsg">Pas de mot de passe : tu reçois un lien de connexion par mail.</small>
+        <form id="homeform" autocomplete="on"><input id="hname" placeholder="Nom de ta liste, ex. Famille Martin" autocomplete="off"><input id="hemail" placeholder="Identifiant, ex. florian" autocomplete="username" autocapitalize="none" spellcheck="false"><input type="password" id="hpass" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password"><button class="btn dark" id="hgo">Créer ma liste</button></form>
+        <small id="hmsg"></small>
       </div>
       <a href="#demo" class="hdemo">ou regarde un exemple →</a>
       <div id="hhub">
@@ -163,8 +164,8 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=202611160938"></script>
+<script src="config.js?v=202611161445"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js?v=202611160938"></script>
+<script src="js/app.js?v=202611161445"></script>
 </body>
 </html>
