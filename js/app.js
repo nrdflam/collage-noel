@@ -176,8 +176,8 @@ function syncReserved(){pieces.forEach((el,k)=>el.classList.toggle('reserved',re
 /* ---------- modes et familles ---------- */
 function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.classList.toggle('ro',!EDIT);b.classList.toggle('viewer',UI==='view');b.classList.toggle('stack',UI==='view'&&VIEW==='stack'&&!matchMedia('(max-width: 760px)').matches);
   b.classList.toggle('member',CAN_WRITE);
-  {const sw=document.getElementById('sharebtn').parentNode,tr=document.getElementById('topright'),dock=document.querySelector('.dock'),fs=document.getElementById('favstar'),sm=document.getElementById('sharemenu');
-   if(UI==='view'){if(sw.parentNode!==tr){tr.insertBefore(sw,document.getElementById('modes'))}if(fs.parentNode!==tr)tr.insertBefore(fs,tr.firstChild);sm.classList.remove('up')}
+  {const sw=document.getElementById('sharebtn').parentNode,tr0=document.getElementById('sharebtn'),tr=document.getElementById('topright'),dock=document.querySelector('.dock'),fs=document.getElementById('favstar'),sm=document.getElementById('sharemenu');
+   if(UI==='view'){tr0.dataset.tip='Partager';if(sw.parentNode!==tr){tr.insertBefore(sw,document.getElementById('modes'))}if(fs.parentNode!==tr)tr.insertBefore(fs,tr.firstChild);sm.classList.remove('up')}
    else{if(sw.parentNode!==dock){dock.appendChild(sw)}sm.classList.add('up')}}
   const m=document.getElementById('modes');m.classList.toggle('show',CAN_WRITE);m.querySelectorAll('button').forEach(x=>x.classList.toggle('cur',x.dataset.m===UI));
   if(!EDIT){setSel([]);dev.classList.remove('on')}syncBrand()}
@@ -459,11 +459,11 @@ function layoutSpreads(){
     const br=document.getElementById('brand'),hint=document.getElementById('stackhint');
     const top=innerHeight*.05+br.offsetHeight,bot=innerHeight-96-hint.offsetHeight;
     const gap=Math.max(18,Math.min(44,(bot-top)*.05));
-    const hx=.5,vy=.17; // décalage entre feuilles, en fraction de la feuille
+    const hx=.74,vy=.03; // décalage entre feuilles : surtout horizontal, léger chevauchement
     // contour réel des feuilles tournées (à l'échelle 1), pour centrer exactement
-    const P=ss.map((id,i)=>{const d=i-(n-1)/2,r=d*2+rotOf(id,1.4),rr=(r+rotOf(id,1.1))*Math.PI/180;
+    const P=ss.map((id,i)=>{const d=i-(n-1)/2,r=d*1.2+rotOf(id,2.2),rr=(r+rotOf(id,1.1))*Math.PI/180;
       const hh=W/2*Math.abs(Math.sin(rr))+H/2*Math.abs(Math.cos(rr)),hw=W/2*Math.abs(Math.cos(rr))+H/2*Math.abs(Math.sin(rr));
-      return {id,x:d*W*hx,y:d*H*vy,r,hh,hw}});
+      return {id,x:d*W*hx,y:(d*vy+(i%2?.02:-.02))*H,r,hh,hw}});
     const t0=Math.min(...P.map(q=>q.y-q.hh)),b0=Math.max(...P.map(q=>q.y+q.hh)),l0=Math.min(...P.map(q=>q.x-q.hw)),r0=Math.max(...P.map(q=>q.x+q.hw));
     let s=Math.min(.86,(bot-top-2*gap)/(b0-t0),(st.width-80)/(r0-l0));
     const oy=spreads.get(ss[0])?.offsetTop??st.height/2;
@@ -1198,7 +1198,7 @@ function toggleFav(id){const a=favs(),i=a.findIndex(f=>f.id===id);
 function renderFavs(){const a=favs(),fav=!!activeBoard&&a.some(f=>f.id===activeBoard);
   // garder le nom à jour
   if(fav){const b=S.boards.get(activeBoard),f=a.find(x=>x.id===activeBoard);if(b&&b.name&&f.name!==b.name){f.name=b.name;try{localStorage.setItem(FKEY,JSON.stringify(a))}catch(e){}}}
-  const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.classList.toggle('on',fav);
+  const st=document.getElementById('favstar');st.textContent=fav?'★ Dans tes favoris':'☆ Ajouter aux favoris';st.dataset.tip=fav?'Retirer de mes favoris':'Ajouter à mes favoris';st.classList.toggle('on',fav);
   document.getElementById('favwrap').style.display=(UI==='view'&&!CAN_WRITE)?'':'none';
   document.getElementById('mklist').style.display=(UI==='view'&&!CAN_WRITE)?'inline-block':'none';
   const h=document.getElementById('hfavs');h.innerHTML='';
