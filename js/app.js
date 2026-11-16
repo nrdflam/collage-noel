@@ -1019,7 +1019,7 @@ document.getElementById('createform').onsubmit=e=>{e.preventDefault();const n=do
 const AM=document.getElementById('acctmenu'),AB=document.getElementById('acctbtn');
 function renderAccount(){document.body.classList.toggle('hasfams',MODE==='local'||MYFAMS.size>0||CAN_WRITE);
   document.getElementById('account').style.display=MODE==='cloud'?'':'none';
-  AB.textContent=USER?(USER.email||'Mon compte'):'Se connecter'}
+  AB.textContent=USER?(USER.email||'Mon compte'):'Se connecter';AB.dataset.i=USER?(USER.email||'?')[0].toUpperCase():'';AB.classList.toggle('in',!!USER)}
 AB.onclick=e=>{e.stopPropagation();if(!USER){showWelcome();return}const o=AM.classList.contains('open');closeMenus();if(o)return;
   AM.innerHTML='';const add=(h,fn)=>{const b=document.createElement('button');b.innerHTML=h;b.onclick=()=>{closeMenus();fn()};AM.appendChild(b)};
   const hd=document.createElement('div');hd.className='mh';hd.textContent=USER.email;AM.appendChild(hd);
