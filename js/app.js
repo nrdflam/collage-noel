@@ -174,7 +174,7 @@ const resShown=id=>S.res.has(id)&&(MODE==='cloud'||!CAN_WRITE||!surpriseOn(S.ite
 function syncReserved(){pieces.forEach((el,k)=>el.classList.toggle('reserved',resShown(k)))}
 
 /* ---------- modes et familles ---------- */
-function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.classList.toggle('ro',!EDIT);b.classList.toggle('viewer',UI==='view');b.classList.toggle('stack',UI==='view'&&VIEW==='stack');
+function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.classList.toggle('ro',!EDIT);b.classList.toggle('viewer',UI==='view');b.classList.toggle('stack',UI==='view'&&VIEW==='stack'&&!matchMedia('(max-width: 760px)').matches);
   b.classList.toggle('member',CAN_WRITE);
   {const sw=document.getElementById('sharebtn').parentNode,tr=document.getElementById('topright'),dock=document.querySelector('.dock'),fs=document.getElementById('favstar'),sm=document.getElementById('sharemenu');
    if(UI==='view'){if(sw.parentNode!==tr){tr.insertBefore(sw,document.getElementById('modes'))}if(fs.parentNode!==tr)tr.insertBefore(fs,tr.firstChild);sm.classList.remove('up')}
@@ -451,7 +451,7 @@ function layoutSpreads(){
   const ss=sortedSheets().map(s=>s[0]),a=ss.indexOf(activeSheet);
   const sh=document.querySelector('.spread .sheet, .ghost .gs');const W=sh?sh.offsetWidth:560;
   const g=stage.querySelector('.ghost');
-  const stacking=UI==='view'&&VIEW==='stack';
+  const stacking=UI==='view'&&VIEW==='stack'&&!MOB;
   if(stacking){
     // pile en cascade : chaque feuille descend un peu et passe devant la précédente,
     // le haut (titre) de chaque liste reste visible ; même vide au-dessus et en dessous.
@@ -474,13 +474,24 @@ function layoutSpreads(){
     if(g){g.classList.remove('near');g.classList.add('far')}
     return;
   }
+  if(MOB){ // mobile : une page à la fois, dans le flux (défilement vertical, liste sous la feuille)
+    ss.forEach((id,i)=>{const el=spreads.get(id);el.style.transform='';el.style.zIndex='';el.classList.remove('stacked','near','far');el.classList.toggle('active',i===a)});
+    if(g){g.classList.remove('near');g.classList.add('far')}return}
   const off=W+366; // distance entre centres de feuilles : la voisine reste devinable sur le côté
   const place=(el,d)=>{setT(el,d*off,0,0,1);el.style.zIndex=d===0?20:10;
     el.classList.remove('stacked');el.classList.toggle('active',d===0);el.classList.toggle('near',Math.abs(d)===1);el.classList.toggle('far',Math.abs(d)>1)};
   ss.forEach((id,i)=>place(spreads.get(id),i-a));
   if(g)place(g,ss.length-a);
 }
+let MOB=false;const mobMQ=matchMedia('(max-width: 760px)');
+function syncMob(){MOB=mobMQ.matches;document.body.classList.toggle('mobile',MOB)}syncMob();
+mobMQ.addEventListener('change',()=>{syncMob();recomputeEdit();layoutSpreads();renderPager()});
 addEventListener('resize',()=>layoutSpreads());
+/* mobile : glisser à gauche / à droite pour changer de page */
+{let T=null;stage.addEventListener('touchstart',e=>{if(!MOB||e.touches.length!==1||document.body.classList.contains('stack'))return;
+    if(EDIT&&e.target.closest('.piece'))return;const t=e.touches[0];T={x:t.clientX,y:t.clientY,t:Date.now()}},{passive:true});
+  stage.addEventListener('touchend',e=>{if(!T)return;const t=e.changedTouches[0],dx=t.clientX-T.x,dy=t.clientY-T.y,dt=Date.now()-T.t;T=null;
+    if(dt<700&&Math.abs(dx)>60&&Math.abs(dx)>1.8*Math.abs(dy)){const ss=sortedSheets().map(s=>s[0]),i=ss.indexOf(activeSheet)+(dx<0?1:-1);if(i>=0&&i<ss.length){setActive(ss[i]);stage.scrollTo({top:0})}}},{passive:true})}
 document.getElementById('brand').addEventListener('transitionend',e=>{if(e.target.id==='brand'&&document.body.classList.contains('stack'))layoutSpreads()});
 let wAcc=0,wLock=0;
 addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<=Math.abs(e.deltaY)||modal.classList.contains('on'))return;e.preventDefault();
@@ -489,10 +500,12 @@ addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<=Math.abs(e.deltaY)||modal.cl
 function setActive(id){if(activeSheet===id)return;activeSheet=id;try{if(EDIT)localStorage.setItem('collage-last-sheet',id)}catch(e){}layoutSpreads();
   [...sel].forEach(k=>{if(S.items.get(k)?.sheet!==id)sel.delete(k)});syncSel();renderPager()}
 function goSheet(d){const ss=sortedSheets().map(s=>s[0]);const i=ss.indexOf(activeSheet)+d;if(i>=0&&i<ss.length)setActive(ss[i])}
-function renderPager(){const p=document.getElementById('pager'),ss=sortedSheets();p.classList.toggle('show',ss.length>1);if(ss.length<2)return;
+function renderPager(){const p=document.getElementById('pager'),ss=sortedSheets(),mob=MOB&&!document.body.classList.contains('stack');p.classList.toggle('show',ss.length>1||(mob&&EDIT));if(ss.length<2&&!(mob&&EDIT))return;
   const i=ss.findIndex(s=>s[0]===activeSheet);p.innerHTML='';
   const arr=(t,d,dis)=>{const b=document.createElement('button');b.className='arr';b.textContent=t;b.disabled=dis;b.onclick=()=>goSheet(d);p.appendChild(b)};
-  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Page '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>setActive(id);p.appendChild(b)});arr('›',1,i>=ss.length-1)}
+  arr('‹',-1,i<=0);ss.forEach(([id,sh],k)=>{const b=document.createElement('button');b.textContent=sh.title||('Page '+(k+1));b.className=id===activeSheet?'cur':'';b.onclick=()=>{setActive(id);if(MOB)stage.scrollTo({top:0})};p.appendChild(b)});arr('›',1,i>=ss.length-1);
+  if(mob&&EDIT){const b=document.createElement('button');b.className='arr add';b.textContent='+';b.title='Ajouter une page';b.onclick=addSheet;p.appendChild(b)}
+  if(mob)p.querySelector('.cur')?.scrollIntoView({inline:'center',block:'nearest'})}
 let openEntry=null;
 function renderList(sid){
   const box=spreads.get(sid).querySelector('.entries');const its=[...S.items].filter(([,v])=>v.sheet===sid&&(EDIT||!v.ph)).sort((a,b)=>(a[1].n||0)-(b[1].n||0));
@@ -515,7 +528,7 @@ function renderList(sid){
     const ed=d.querySelector('.ed');if(ed)ed.onclick=()=>openForm(id);
     box.appendChild(d);entries.set(id,d)});
 }
-function setOpen(id){const prev=openEntry;openEntry=id;if(prev)refreshAct(prev);if(id)refreshAct(id);entries.forEach((e,k)=>{if(e.isConnected)e.classList.toggle('open',k===id)});const e=id&&entries.get(id);if(e)setTimeout(()=>e.scrollIntoView({block:'nearest',behavior:'smooth'}),60)}
+function setOpen(id){const prev=openEntry;openEntry=id;if(prev)refreshAct(prev);if(id)refreshAct(id);entries.forEach((e,k)=>{if(e.isConnected)e.classList.toggle('open',k===id)});const e=id&&entries.get(id);if(e&&!(MOB&&EDIT))setTimeout(()=>e.scrollIntoView({block:'nearest',behavior:'smooth'}),60)}
 const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'Lien'}};
 
 /* ---------- activation (survol / sélection) ---------- */
@@ -573,6 +586,7 @@ function transformGroup(keys,start,dA,f,R){
 /* lasso */
 const lasso=document.getElementById('lasso');let L0=null,Lsel0=[],Lsheet=null;
 stage.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch')return; // au doigt : on fait défiler, pas de lasso
   if(e.target.closest('.piece,.head,.list,.ghost,.spread.near,.spread.stacked'))return;
   const sp=e.target.closest('.spread');Lsheet=sp?sp.dataset.id:activeSheet;if(!Lsheet)return;setActive(Lsheet);
   L0=[e.clientX,e.clientY];Lsel0=(e.shiftKey||e.metaKey||e.ctrlKey)?[...sel]:[];setSel(Lsel0);if(!Lsel0.length)setOpen(null);
