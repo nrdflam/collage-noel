@@ -47,17 +47,38 @@ async function flush(){if(flushing)return;flushing=true;setStatus('Enregistremen
 const fresh=key=>Date.now()-(recent.get(key)||0)<2500; // ignore l'écho de ses propres écritures
 function saveLocal(){if(MODE!=='local')return;try{localStorage.setItem(LKEY,JSON.stringify({boards:[...S.boards],sheets:[...S.sheets],items:[...S.items],res:[...S.res]}))}catch(e){toast('Stockage local plein')}}
 const famOf=sheetId=>S.sheets.get(sheetId)?.board||activeBoard;
+/* ---------- historique : annuler / rétablir ----------
+   On garde une copie de l'état « validé » de chaque élément ; chaque écriture via store
+   enregistre [avant, après]. Les écritures rapprochées (< 300 ms) forment une seule étape. */
+const cloneJ=o=>o==null?null:JSON.parse(JSON.stringify(o));
+const SH={b:new Map(),s:new Map(),i:new Map()},HIST={u:[],r:[],cur:null,t:0,mute:0};
+function snapAll(){SH.b=new Map([...S.boards].map(([k,v])=>[k,cloneJ(v)]));SH.s=new Map([...S.sheets].map(([k,v])=>[k,cloneJ(v)]));SH.i=new Map([...S.items].map(([k,v])=>[k,cloneJ(stripLocal?stripLocal(v):v)]));HIST.u=[];HIST.r=[];HIST.cur=null;syncUndo()}
+function rec(kind,id,after){const m=SH[kind],before=m.has(id)?m.get(id):null,a=cloneJ(after);if(a==null)m.delete(id);else m.set(id,a);
+  if(HIST.mute||JSON.stringify(before)===JSON.stringify(a))return;
+  if(!HIST.cur){HIST.cur=[];HIST.u.push(HIST.cur);if(HIST.u.length>100)HIST.u.shift();HIST.r=[]}
+  HIST.cur.push([kind,id,before,a]);clearTimeout(HIST.t);HIST.t=setTimeout(()=>{HIST.cur=null},300);syncUndo()}
+function applyHist(step,dir){HIST.mute++;clearTimeout(HIST.t);HIST.cur=null;
+  try{const ops=dir<0?[...step].reverse():step;ops.forEach(([k,id,b,a])=>{const v=dir<0?b:a;
+    if(k==='i'){if(v==null){if(S.items.has(id))store.delItem(id,true);SH.i.delete(id)}else{S.items.set(id,cloneJ(v));store.setItem(id,{},true)}}
+    else if(k==='s'){if(v==null){if(S.sheets.has(id)){S.sheets.delete(id);if(MODE==='cloud')cloudWrite('s/'+id,()=>SB.from('sheets').delete().eq('id',id));else saveLocal()}SH.s.delete(id)}else{S.sheets.set(id,cloneJ(v));store.setSheet(id,{})}}
+    else if(k==='b'&&v){S.boards.set(id,cloneJ(v));store.setBoard(id,{})}})}
+  finally{HIST.mute--}
+  const it=step.find(o=>o[0]==='i'&&S.items.has(o[1]));if(it&&S.items.get(it[1]).sheet!==activeSheet)setActive(S.items.get(it[1]).sheet);
+  setSel([]);renderAll(true);syncUndo()}
+function undo(){if(!EDIT||!HIST.u.length)return;HIST.cur=null;const st=HIST.u.pop();HIST.r.push(st);applyHist(st,-1);toast('Annulé')}
+function redo(){if(!EDIT||!HIST.r.length)return;HIST.cur=null;const st=HIST.r.pop();HIST.u.push(st);applyHist(st,1);toast('Rétabli')}
+function syncUndo(){const u=document.getElementById('undobtn'),r=document.getElementById('redobtn');if(u)u.disabled=!HIST.u.length;if(r)r.disabled=!HIST.r.length}
 const store={
-  setBoard(id,d){S.boards.set(id,{...S.boards.get(id),...d});renderAll();
+  setBoard(id,d){S.boards.set(id,{...S.boards.get(id),...d});rec('b',id,S.boards.get(id));renderAll();
     if(MODE==='cloud'){const b=S.boards.get(id);const row={id,data:{name:b.name||'',subtitle:b.subtitle??''}};if(b.reserve_mode)row.reserve_mode=b.reserve_mode;
       delete row.id;cloudWrite('f/'+id,()=>SB.from('families').update(row).eq('id',id));if(MYFAMS.has(id))MYFAMS.set(id,{...MYFAMS.get(id),...b})}else saveLocal()},
-  setSheet(id,d){S.sheets.set(id,{...S.sheets.get(id),...d});renderAll();
+  setSheet(id,d){S.sheets.set(id,{...S.sheets.get(id),...d});rec('s',id,S.sheets.get(id));renderAll();
     if(MODE==='cloud'){const v=S.sheets.get(id);cloudWrite('s/'+id,()=>SB.from('sheets').upsert({id,family_id:v.board||activeBoard,data:v,updated_at:new Date().toISOString()}))}else saveLocal()},
-  delSheet(id){const fam=famOf(id);S.sheets.delete(id);[...S.items].filter(([,v])=>v.sheet===id).forEach(([k])=>store.delItem(k,true));renderAll();
+  delSheet(id){const fam=famOf(id);S.sheets.delete(id);rec('s',id,null);[...S.items].filter(([,v])=>v.sheet===id).forEach(([k])=>store.delItem(k,true));renderAll();
     if(MODE==='cloud')cloudWrite('s/'+id,()=>SB.from('sheets').delete().eq('id',id));else saveLocal()},
-  setItem(id,d,silent){const v={...S.items.get(id),...d};S.items.set(id,v);if(!silent)renderAll();
+  setItem(id,d,silent){const v={...S.items.get(id),...d};S.items.set(id,v);rec('i',id,stripLocal(v));if(!silent)renderAll();
     if(MODE==='cloud'){const fam=famOf(v.sheet);cloudWrite('i/'+id,()=>SB.from('items').upsert({id,family_id:fam,data:stripLocal(v),updated_at:new Date().toISOString()}))}else saveLocal()},
-  delItem(id,silent){S.items.delete(id);S.res.delete(id);if(!silent)renderAll();
+  delItem(id,silent){S.items.delete(id);S.res.delete(id);rec('i',id,null);if(!silent)renderAll();
     if(MODE==='cloud')cloudWrite('i/'+id,()=>SB.from('items').delete().eq('id',id));else saveLocal()},
   setCfg(){saveLocal()}
 };
@@ -121,17 +142,17 @@ async function loadFamily(fid,first){
   await loadRes();
   subscribe(fid);
   if(CAN_WRITE&&!sortedSheets().length)addSheet();
-  recomputeEdit();renderAll(true);renderAccount();
+  recomputeEdit();renderAll(true);renderAccount();snapAll();
   setStatus(CAN_WRITE?'Enregistré':'Lecture seule',true);
   setTimeout(consumeAdd,300);
 }
 function subscribe(fid){
   if(CHANNEL)SB.removeChannel(CHANNEL);
   const apply=(tab,p)=>{const m=tab==='sheets'?S.sheets:S.items,k=(tab==='sheets'?'s/':'i/');
-    if(p.eventType==='DELETE'){const id=p.old?.id;if(id&&m.has(id)&&!fresh(k+id)){m.delete(id);renderAll()}return}
+    if(p.eventType==='DELETE'){const id=p.old?.id;if(id&&m.has(id)&&!fresh(k+id)){m.delete(id);SH[tab==='sheets'?'s':'i'].delete(id);renderAll()}return}
     const r=p.new;if(!r||r.family_id!==fid||fresh(k+r.id))return;
     if(tab==='items'&&dragging.has(r.id))return;
-    m.set(r.id,tab==='sheets'?{...r.data,board:fid}:r.data);renderAll()};
+    m.set(r.id,tab==='sheets'?{...r.data,board:fid}:r.data);SH[tab==='sheets'?'s':'i'].set(r.id,cloneJ(m.get(r.id)));renderAll()};
   CHANNEL=SB.channel('fam-'+fid)
     .on('postgres_changes',{event:'*',schema:'public',table:'sheets',filter:'family_id=eq.'+fid},p=>apply('sheets',p))
     .on('postgres_changes',{event:'*',schema:'public',table:'items',filter:'family_id=eq.'+fid},p=>apply('items',p))
@@ -183,7 +204,7 @@ function recomputeEdit(){EDIT=CAN_WRITE&&UI==='edit';const b=document.body;b.cla
   if(!EDIT){setSel([]);dev.classList.remove('on')}syncBrand()}
 function setUI(u){closeMenus();UI=u;setTimeout(renderFavs);VIEW=u==='view'?'stack':'open';try{localStorage.setItem('collage-ui',u)}catch(e){}recomputeEdit();renderAll()}
 const firstBoard=()=>[...S.boards].sort((a,b)=>(a[1].order||0)-(b[1].order||0))[0]?.[0]||null;
-function pickBoard(){const h=hashFam();const want=S.boards.has(h)?h:(S.boards.has(activeBoard)?activeBoard:firstBoard());
+function pickBoard(){setTimeout(snapAll,0);const h=hashFam();const want=S.boards.has(h)?h:(S.boards.has(activeBoard)?activeBoard:firstBoard());
   if(want!==activeBoard){activeBoard=want;activeSheet=null}syncBrand()}
 addEventListener('hashchange',()=>{const h=hashFam();if(MODE==='cloud'){if(h&&h!==activeBoard)loadFamily(h);else if(!h)afterAuth();return}if(!h){showHome();return}hideHome();pickBoard();recomputeEdit();renderAll(true);accueilBar()});
 function syncBrand(){const f=document.querySelector('#brand .fam'),s=document.querySelector('#brand .fsub');if(!f)return;const b=S.boards.get(activeBoard);
@@ -599,6 +620,8 @@ addEventListener('pointerup',()=>{L0=null;lasso.style.display='none'});
 addEventListener('keydown',e=>{
   if(e.target.closest&&e.target.closest('input,textarea,[contenteditable="true"]'))return;
   if((e.metaKey||e.ctrlKey)&&(e.key==='a'||e.key==='A')){e.preventDefault();selectAll()}
+  if((e.metaKey||e.ctrlKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();e.shiftKey?redo():undo();return}
+  if((e.metaKey||e.ctrlKey)&&(e.key==='y'||e.key==='Y')){e.preventDefault();redo();return}
   if(e.key==='Escape'){setSel([]);setOpen(null);closeMenus()}
   if((e.key==='d'||e.key==='D')&&!e.metaKey&&!e.ctrlKey&&EDIT)toggleDev();
   const ar={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
@@ -1240,9 +1263,10 @@ function deleteSelection(){const keys=[...sel].filter(k=>S.items.has(k));if(!key
   const sheets=new Set(keys.map(k=>S.items.get(k).sheet)),before=[...S.items].filter(([,v])=>sheets.has(v.sheet)).map(([k,v])=>[k,v.n]);
   const saved=keys.map(k=>[k,{...S.items.get(k)}]);keys.forEach(k=>{store.delItem(k,true);sel.delete(k)});sheets.forEach(renumber);renderAll();syncSel();
   const t=document.getElementById('toast');t.innerHTML='';const sp=document.createElement('span');sp.textContent=keys.length>1?keys.length+' objets supprimés':'Objet supprimé';
-  const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{saved.forEach(([k,v])=>store.setItem(k,v,true));before.forEach(([k,n])=>{if(S.items.has(k)&&S.items.get(k).n!==n)store.setItem(k,{n},true)});renderAll();t.classList.remove('on')};
+  const u=document.createElement('button');u.className='undo';u.textContent='Annuler';u.onclick=()=>{undo();t.classList.remove('on')};
   t.append(sp,u);t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),6000)}
 document.getElementById('delsel').onclick=deleteSelection;
+document.getElementById('undobtn').onclick=undo;document.getElementById('redobtn').onclick=redo;
 
 /* =====================================================================
    Bouton « + Collage » pour la barre de favoris : lit la page produit dans le navigateur
